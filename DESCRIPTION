@@ -1,0 +1,20 @@
+Package: flexTab1
+Title: Creation of a Table 1 and descriptive summary tables
+Version: 0.0.0.9000
+Authors@R: 
+    person("Katja", "Gutmair", , "katja.gutmair@ibe.med.uni-muenchen.de", role = c("aut", "cre"),
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: This package provides functions for quickly generating summary statistics for both 
+             categorical and numeric variables, either for a single group or stratified across 
+             multiple groups, including a Table 1. The key advantage of this package lies in its 
+             flexibility: users can choose from a wide range of summary measures (e.g., median, 
+             mean, standard deviation, and more) to display. Additionally, options are available 
+             to visualize the frequency of missing values per variable, p-values and/or standardized 
+             mean differences. Users can also decide whether to output a publication-ready table 
+             using the flextable package or a simple data frame for further customization of the layout.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+URL: https://github.com/KGutmair/flexTab1
+BugReports: https://github.com/KGutmair/flexTab1/issues
