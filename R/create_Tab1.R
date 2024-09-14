@@ -251,7 +251,7 @@ Table1_flex <- function(data,
   tab1
 }
 
-
+library(devtools)
 use_git_config(user.name = "KGutmair", user.email = "katja.gutmair@ibe.med.uni-muenchen.de")
 use_git()
 use_github(private = TRUE)
