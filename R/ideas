@@ -16,3 +16,15 @@ arrange(): Order rows using column values
 # Return value
 A function’s output is as important as its inputs. Documenting the output is the job of the @returns10 tag. Here the priority is to describe the overall “shape” of the output, i.e. what sort of object it is, and its dimensions (if that makes sense)
 For example, if your function returns a vector you might describe its type and length, or if your function returns a data frame you might describe the names and types of the columns and the expected number of rows
+
+
+ all dependencies
+flextable
+dplyr
+checkmate
+data.table
+janitor: remark: better using fisher test without janitor
+smd
+magrittr
+stringr
+tidyr

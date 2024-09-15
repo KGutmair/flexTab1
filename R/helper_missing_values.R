@@ -24,7 +24,9 @@
 #' @return A `data.frame` containing the summary measures (one column for each summary measure)
 #'          for missing values specified in the input parameters.
 #' @noRd
-#'
+#' @importFrom dplyr summarize_at select_if mutate relocate select rename group_by slice
+#' @importFrom magrittr set_colnames
+#' @importFrom tidyr all_of
 #'
 helper_summarize_missings <- function(data,
                           var_vec,
@@ -32,7 +34,6 @@ helper_summarize_missings <- function(data,
                           treatment_arm = FALSE,
                           measures = c("absolute", "relative"),
                           measure_style = TRUE) {
-  require(magrittr)
   tab1_list <- list()
   i <- 1
 
@@ -71,7 +72,6 @@ helper_summarize_missings <- function(data,
         },
         list(tab1_1, tab2_2, tab3)
       )
-
 
     # select all the appropriate measure options
     all_measure_options <- c("absolute", "relative")

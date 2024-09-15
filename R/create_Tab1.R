@@ -47,8 +47,8 @@
 #'         The returned Table 1 contains the summary measures specified in the input parameters,
 #'         including any chosen statistics, p-values, standardized mean differences (SMD), and missing value frequencies.
 #' @export
+#' @importFrom checkmate assert_data_frame assert_vector assert_character assertSubset assertLogical
 #'
-#' @examples
 #'
 Table1_flex <- function(data,
                         variables,
@@ -61,8 +61,7 @@ Table1_flex <- function(data,
                         display_smd = FALSE,
                         display_missings = TRUE,
                         flextable_output = TRUE) {
-  require(flextable)
-  require(dplyr)
+
   ###############################
   # Testing input parameters
   ###############################
@@ -251,12 +250,15 @@ Table1_flex <- function(data,
   tab1
 }
 
-library(devtools)
-use_git_config(user.name = "KGutmair", user.email = "katja.gutmair@ibe.med.uni-muenchen.de")
-use_git()
-use_github(private = TRUE)
-gh::gh_token()
-library(gitcreds)
-gitcreds_set(url = "https://github.com/KGutmair")
-gitcreds::gitcreds_get()
-use_github(private = TRUE)
+
+library("flextable")
+library("dplyr")
+library("checkmate")
+library("data.table")
+library("janitor")
+library("smd")
+library("magrittr")
+library("stringr")
+library("tidyr")
+
+

@@ -23,6 +23,11 @@
 #'
 #' @return Table 1 as flextable object
 #'
+#' @importFrom dplyr mutate arrange group_by mutate_at summarise rename relocate
+#' @importFrom stringr str_subset
+#' @importFrom tidyr all_of
+#' @importFrom flextable flextable bold hline set_header_labels align separate_header compose align
+#'
 #' @noRd
 helper_flextable_fun <- function(tab1,
                                  data,
@@ -32,8 +37,7 @@ helper_flextable_fun <- function(tab1,
                                  measures_num = c("median", "min", "max"),
                                  cat_var = c(),
                                  new_line = FALSE) {
-  require(stringr)
-  require(tidyr)
+
 
   ##################################
   # Prepare data frame for a nice output

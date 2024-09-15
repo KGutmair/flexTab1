@@ -18,6 +18,7 @@
 #'
 #' @return A data frame with variable names and corresponding p-values from the Wilcoxon test,
 #'         indicating whether the distributions of the variables differ between two groups.
+#' @importFrom dplyr rename mutate filter
 #' @noRd
 
 helper_testing_num <- function(data,
@@ -129,11 +130,12 @@ helper_testing_num <- function(data,
 #'
 #' @return A data frame with variable names and corresponding p-values from the Fisher´s exact test,
 #'         indicating whether the distributions of the variables differ between two groups.
-
+#'
+#' @importFrom dplyr rename filter mutate
+#' @importFrom janitor tabyl fisher.test
 #' @noRd
 
 helper_testing_cat <- function(data, cat_vec, group_var, treatment_arm = FALSE) {
-  require(janitor)
 
   if (is.logical(treatment_arm)) {
     group_var1 <- sym(group_var)
@@ -245,6 +247,9 @@ helper_testing_cat <- function(data, cat_vec, group_var, treatment_arm = FALSE) 
 #'
 #' @inheritParams Table1_flex
 #' @return A data frame with variable names and standardized mean differences.
+#' @importFrom dplyr rename select mutate filter
+#' @importFrom tidyr all_of
+#' @importFrom smd smd
 #' @noRd
 
 helper_smd <-
@@ -252,7 +257,6 @@ helper_smd <-
            variables,
            group_var,
            treatment_arm = FALSE) {
-    require(smd)
 
     if (is.logical(treatment_arm)) {
       # No group

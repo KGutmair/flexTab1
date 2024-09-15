@@ -19,6 +19,11 @@
 #'        a single column, provided that more than one summary measure is selected.
 #' @return A `data.frame` containing the summary measures (one column for each summary measure)
 #'         specified in the input parameters.
+#'
+#' @importFrom dplyr filter group_by summarize mutate rename relocate select
+#' @importFrom data.table dcast setDT
+#' @importFrom tidyr all_of
+#'
 #' @noRd
 
 # old: tab1_categorical
@@ -29,7 +34,6 @@ helper_summarize_cat <- function(data,
                             new_line = FALSE,
                             measures_cat = c("absolute", "relative"),
                             measure_style = FALSE) {
-  require(data.table)
 
   tab1_list <- list()
   i <- 1
@@ -178,6 +182,8 @@ helper_summarize_cat <- function(data,
 #' @return A `data.frame` containing the summary measures specified in the input parameters.
 #'         If more than one summary measure is chosen, the summary measures are merged into
 #'         one column
+#' @importFrom dplyr mutate select rename mutate_at
+#' @importFrom tidyr all_of
 #'
 #' @noRd
 

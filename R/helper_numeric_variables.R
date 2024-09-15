@@ -36,6 +36,9 @@
 #'
 #' @return A `data.frame` containing the summary measures (one column for each summary measure)
 #'         specified in the input parameters.
+#' @importFrom dplyr summarize mutate relocate select rename group_by
+#' @importFrom data.table dcast setDT
+#' @importFrom tidyr all_of
 #'
 #' @noRd
 #'
@@ -46,9 +49,7 @@ helper_summarize_num <- function(data,
                          new_line = FALSE,
                          measures_num = c("median", "min", "max"),
                          measure_style = FALSE) {
-  require("checkmate")
-  require(dplyr)
-  require(data.table)
+
 
   tab1_list <- list()
   i <- 1
@@ -214,6 +215,8 @@ helper_summarize_num <- function(data,
 #' @return A `data.frame` containing the summary measures specified in the input parameters.
 #'         If more than one summary measure is chosen, the summary measures are merged into
 #'         one column
+#' @importFrom dplyr rename mutate select mutate_at
+#' @importFrom tidyr all_of
 #' @noRd
 
 num_unify_names <- function(data,
