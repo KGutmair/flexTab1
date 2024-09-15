@@ -251,14 +251,3 @@ Table1_flex <- function(data,
 }
 
 
-library("flextable")
-library("dplyr")
-library("checkmate")
-library("data.table")
-library("janitor")
-library("smd")
-library("magrittr")
-library("stringr")
-library("tidyr")
-
-
