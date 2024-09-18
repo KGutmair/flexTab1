@@ -1,5 +1,5 @@
 
-#' Generate a flexible Table 1 with customizable output, and statistical details.
+#' Generate Table 1 with Customizable Summary Measures
 #'
 #'@description
 #'This function creates a highly flexible Table 1 for descriptive statistics,
@@ -47,8 +47,10 @@
 #'         The returned Table 1 contains the summary measures specified in the input parameters,
 #'         including any chosen statistics, p-values, standardized mean differences (SMD), and missing value frequencies.
 #' @export
+#' @importFrom plyr rbind.fill
 #' @importFrom checkmate assert_data_frame assert_vector assert_character assertSubset assertLogical
-#'
+#' @importFrom magrittr %>%
+#' @importFrom rlang .data
 #'
 Table1_flex <- function(data,
                         variables,
@@ -211,7 +213,7 @@ Table1_flex <- function(data,
     )
 
     smd_data <- smd_data %>%
-      rename(name = variable)
+      rename(name = data$variable)
 
     tab1 <- merge(tab1, smd_data, by = "name", all.x = TRUE)
   }

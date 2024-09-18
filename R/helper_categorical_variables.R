@@ -20,9 +20,10 @@
 #' @return A `data.frame` containing the summary measures (one column for each summary measure)
 #'         specified in the input parameters.
 #'
-#' @importFrom dplyr filter group_by summarize mutate rename relocate select
+#' @importFrom dplyr filter group_by summarize mutate rename relocate select %>% n
 #' @importFrom data.table dcast setDT
 #' @importFrom tidyr all_of
+#' @importFrom rlang sym .data
 #'
 #' @noRd
 
@@ -184,6 +185,9 @@ helper_summarize_cat <- function(data,
 #'         one column
 #' @importFrom dplyr mutate select rename mutate_at
 #' @importFrom tidyr all_of
+#' @importFrom magrittr %>%
+#' @importFrom rlang sym :=
+#'
 #'
 #' @noRd
 
@@ -217,7 +221,7 @@ cat_unify_names <- function(data,
       data <- data %>%
         rename(group = !!group_var1,
                treatment_arm = !!treatment_arm1) %>%
-        mutate(group = paste(treatment_arm, group, sep = " "))
+        mutate(group = paste(treatment_arm, .data$group, sep = " "))
 
     } else {
       group_var1 <- sym(group_var)

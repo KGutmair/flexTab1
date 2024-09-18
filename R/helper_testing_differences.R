@@ -18,7 +18,9 @@
 #'
 #' @return A data frame with variable names and corresponding p-values from the Wilcoxon test,
 #'         indicating whether the distributions of the variables differ between two groups.
-#' @importFrom dplyr rename mutate filter
+#' @importFrom dplyr rename mutate filter %>%
+#' @importFrom rlang sym .data
+#' @importFrom stats wilcox.test
 #' @noRd
 
 helper_testing_num <- function(data,
@@ -81,7 +83,7 @@ helper_testing_num <- function(data,
         i <- 1
 
         data2 <- data1 %>%
-          filter(treat_arm == arms[k])
+          filter(.data$treat_arm == arms[k])
 
         p_values <-
           unlist(lapply(data2[, num_vec], function(x) {
@@ -131,8 +133,9 @@ helper_testing_num <- function(data,
 #' @return A data frame with variable names and corresponding p-values from the Fisher´s exact test,
 #'         indicating whether the distributions of the variables differ between two groups.
 #'
-#' @importFrom dplyr rename filter mutate
+#' @importFrom dplyr rename filter mutate %>%
 #' @importFrom janitor tabyl fisher.test
+#' @importFrom rlang sym .data
 #' @noRd
 
 helper_testing_cat <- function(data, cat_vec, group_var, treatment_arm = FALSE) {
@@ -181,7 +184,7 @@ helper_testing_cat <- function(data, cat_vec, group_var, treatment_arm = FALSE) 
       res_tab <- as.data.frame(res_tab)
       colnames(res_tab) <- c("name", "p-value")
       all_p <- res_tab %>%
-        mutate(`p-value` = ifelse(`p-value` < 0.001, "< 0.001", `p-value`))
+        mutate(`p-value` = ifelse(.data$`p-value` < 0.001, "< 0.001", .data$`p-value`))
     }
   } else if (number_groups > 2 & is.logical(treatment_arm)) {
     print("this method is not implemented yet")
@@ -201,7 +204,7 @@ helper_testing_cat <- function(data, cat_vec, group_var, treatment_arm = FALSE) 
         i <- 1
 
         data2 <- data1 %>%
-          filter(treat_arm == arms[k])
+          filter(.data$treat_arm == arms[k])
 
         for (param in (cat_vec)) {
           param1 <- sym(param)
@@ -219,7 +222,7 @@ helper_testing_cat <- function(data, cat_vec, group_var, treatment_arm = FALSE) 
         res_tab <- as.data.frame(res_tab)
         colnames(res_tab) <- c("name", "p-value")
         res_tab <- res_tab %>%
-          mutate(`p-value` = ifelse(`p-value` < 0.001, "< 0.001", `p-value`))
+          mutate(`p-value` = ifelse(.data$`p-value` < 0.001, "< 0.001", .data$`p-value`))
         names(res_tab)[names(res_tab) == "p-value"] <- paste0(arms[k], "_p-value")
         arms_list[[k]] <- res_tab
       }
@@ -247,9 +250,10 @@ helper_testing_cat <- function(data, cat_vec, group_var, treatment_arm = FALSE) 
 #'
 #' @inheritParams Table1_flex
 #' @return A data frame with variable names and standardized mean differences.
-#' @importFrom dplyr rename select mutate filter
+#' @importFrom dplyr rename select mutate filter %>%
 #' @importFrom tidyr all_of
 #' @importFrom smd smd
+#' @importFrom rlang sym
 #' @noRd
 
 helper_smd <-
@@ -304,7 +308,7 @@ helper_smd <-
         i <- 1
 
         data2 <- data1 %>%
-          filter(treat_arm == arms[k]) %>%
+          filter(.data$treat_arm == arms[k]) %>%
           select(all_of(c(variables, "group")))
 
         md_res <- smd(
@@ -315,9 +319,9 @@ helper_smd <-
         )
 
         md_res <- md_res %>%
-          select(variable, estimate) %>%
-          rename(SMD = estimate) %>%
-          mutate(SMD = round(SMD, 3))
+          select(variable, .data$estimate) %>%
+          rename(SMD = .data$estimate) %>%
+          mutate(SMD = round(.data$SMD, 3))
         names(md_res)[names(md_res) == "SMD"] <- paste0(arms[k], "_SMD")
 
         arms_list[[k]] <- md_res

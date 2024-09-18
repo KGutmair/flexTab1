@@ -21,10 +21,12 @@ BugReports: https://github.com/KGutmair/flexTab1/issues
 Imports: 
     checkmate (>= 2.3.1),
     data.table (>= 1.15.4),
+    plyr (>= 1.1.4),
     dplyr (>= 1.1.4),
     flextable (>= 0.9.6),
     janitor (>= 2.2.0),
     magrittr (>= 2.0.3),
     smd (>= 0.7.0),
     stringr (>= 1.5.1),
-    tidyr (>= 1.3.1)
+    tidyr (>= 1.3.1),
+    rlang (>= 1.1.4)

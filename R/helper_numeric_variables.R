@@ -36,9 +36,11 @@
 #'
 #' @return A `data.frame` containing the summary measures (one column for each summary measure)
 #'         specified in the input parameters.
-#' @importFrom dplyr summarize mutate relocate select rename group_by
-#' @importFrom data.table dcast setDT
+#' @importFrom dplyr summarize mutate relocate select rename group_by summarise_at %>%
+#' @importFrom data.table dcast setDT as.data.table
 #' @importFrom tidyr all_of
+#' @importFrom rlang sym
+#' @importFrom stats sd quantile median
 #'
 #' @noRd
 #'
@@ -215,8 +217,9 @@ helper_summarize_num <- function(data,
 #' @return A `data.frame` containing the summary measures specified in the input parameters.
 #'         If more than one summary measure is chosen, the summary measures are merged into
 #'         one column
-#' @importFrom dplyr rename mutate select mutate_at
+#' @importFrom dplyr rename mutate select mutate_at %>%
 #' @importFrom tidyr all_of
+#' @importFrom rlang sym :=
 #' @noRd
 
 num_unify_names <- function(data,
@@ -305,4 +308,6 @@ num_unify_names <- function(data,
 }
 
 
-
+for (i in seq_len(3)) {
+  print(i)
+}

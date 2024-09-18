@@ -25,8 +25,10 @@
 #'          for missing values specified in the input parameters.
 #' @noRd
 #' @importFrom dplyr summarize_at select_if mutate relocate select rename group_by slice
+#' summarise_at %>%
 #' @importFrom magrittr set_colnames
 #' @importFrom tidyr all_of
+#' @importFrom rlang sym
 #'
 helper_summarize_missings <- function(data,
                           var_vec,

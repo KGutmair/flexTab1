@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_Tab1.R
 \name{Table1_flex}
 \alias{Table1_flex}
-\title{Generate a flexible Table 1 with customizable output, and statistical details.}
+\title{Generate Table 1 with Customizable Summary Measures}
 \usage{
 Table1_flex(
   data,

@@ -24,10 +24,13 @@
 #' @return Table 1 as flextable object
 #'
 #' @importFrom dplyr mutate arrange group_by mutate_at summarise rename relocate
+#' row_number n
 #' @importFrom stringr str_subset
 #' @importFrom tidyr all_of
-#' @importFrom flextable flextable bold hline set_header_labels align separate_header compose align
-#'
+#' @importFrom flextable flextable bold hline set_header_labels align separate_header
+#' compose align as_paragraph
+#' @importFrom magrittr %>%
+#' @importFrom rlang sym
 #' @noRd
 helper_flextable_fun <- function(tab1,
                                  data,
@@ -91,9 +94,9 @@ helper_flextable_fun <- function(tab1,
 
   tab1 <- tab1 %>%
     mutate(name = ifelse(
-      name %in% cat_var,
-      paste0(name, identifier_cat),
-      paste0(name, "\n", identifier_num)
+      .data$name %in% cat_var,
+      paste0(.data$name, identifier_cat),
+      paste0(.data$name, "\n", identifier_num)
     )) %>%
     arrange(name)
 
@@ -133,7 +136,7 @@ helper_flextable_fun <- function(tab1,
   if (is.logical(group_var)) {
     number_group <- data %>%
       summarise(number = n()) %>%
-      mutate(new_col = paste0("measure\n(N=", number, ")"))
+      mutate(new_col = paste0("measure\n(N=", .data$number, ")"))
     names(tab1)[names(tab1) == "measure"] <- number_group$new_col
   } else {
     # more than one group
