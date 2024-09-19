@@ -28,6 +28,7 @@
 #' @noRd
 
 # old: tab1_categorical
+
 helper_summarize_cat <- function(data,
                             cat_vec,
                             group_var = FALSE,

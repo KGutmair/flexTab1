@@ -105,6 +105,9 @@ Table1_flex <- function(data,
                     the difference between treatment_arm and group_var"
     )
   }
+  if(!is.null(sort_rows) & all(sort_rows %in% variables) == FALSE) {
+    stop("The variable names provided in the `sort_row` argument are not included in the `variables` argument")
+  }
 
   assert_character(
     measures_cat,
@@ -130,6 +133,8 @@ Table1_flex <- function(data,
   assertLogical(display_pvalue, any.missing = FALSE, len = 1)
   assertLogical(display_smd, any.missing = FALSE, len = 1)
   assertLogical(display_missings, any.missing = FALSE, len = 1)
+  assertLogical(flextable_output, any.missing = FALSE, len = 1)
+  assertLogical(add_measure_ident, any.missing = FALSE, len = 1)
 
   if (is.logical(group_var) &
       (display_pvalue == TRUE | display_smd == TRUE)) {
@@ -161,6 +166,7 @@ Table1_flex <- function(data,
   ###########################################################
 
   tab_cat1 <- helper_summarize_cat(
+    data = data,
     cat_vec = cat_vec,
     new_line = new_line,
     group_var = group_var,
@@ -170,6 +176,7 @@ Table1_flex <- function(data,
   )
 
   tab_num1 <- helper_summarize_num(
+    data = data,
     num_vec = num_vec,
     new_line = new_line,
     group_var = group_var,
@@ -221,7 +228,7 @@ Table1_flex <- function(data,
     )
 
     smd_data <- smd_data %>%
-      rename(name = data$variable)
+      rename(name = .data$variable)
 
     tab1 <- merge(tab1, smd_data, by = "name", all.x = TRUE)
   }
@@ -250,6 +257,7 @@ Table1_flex <- function(data,
       tab1 = tab1,
       data = data,
       group_var = group_var,
+      new_line = new_line,
       treatment_arm = treatment_arm,
       measures_cat = measures_cat,
       measures_num = measures_num,
