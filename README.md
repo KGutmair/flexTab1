@@ -33,6 +33,8 @@ Table 1 for one group/treatment arm
 ``` r
 library(dplyr)
 library(flexTab1)
+library(flextable)
+
 
 
 # Load pbc data from the survival package
@@ -45,10 +47,15 @@ pbc <- pbc %>%
      filter(!is.na(trt)) %>%
      mutate(trt = ifelse(trt == "1", "D-penicillmain", "Placebo"))
 
- Table1_flex(
+ tab1_ex <- Table1_flex(
      data = pbc,
      variables = baseline_var 
    )
+
+tab1_ex %>%
+  fontsize(size = 11, part = "all") %>%
+   line_spacing(space = 1.7, part = "all") %>%
+   autofit() 
 ```
 
-<img src="man/figures/README-unnamed-chunk-2-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-2-1.png" width="50%" />

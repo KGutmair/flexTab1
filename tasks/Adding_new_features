@@ -1,3 +1,4 @@
 ##
 ## Provide a string with units, .g. age [in years], WBC [mg/dl] to add this to the variable names
 ## Provide an option to modify the column names and row names (as a whole or just single variables)
+# adding global options for nice outputs for HTML, pdf, word
