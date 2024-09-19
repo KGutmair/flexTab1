@@ -15,7 +15,9 @@ Table1_flex(
   display_pvalue = FALSE,
   display_smd = FALSE,
   display_missings = TRUE,
-  flextable_output = TRUE
+  flextable_output = TRUE,
+  sort_rows = NULL,
+  add_measure_ident = TRUE
 )
 }
 \arguments{
@@ -55,6 +57,12 @@ each variable will be shown in the output.}
 
 \item{flextable_output}{A logical (TRUE/FALSE), default is \code{TRUE}. If \code{TRUE}, the Table 1 will be returned as a
 flextable object. If \code{FALSE}, it will be returned as a \code{data.frame}.}
+
+\item{sort_rows}{A character vector specifying the order in which the variables should appear in the output table.
+The default is NULL, which will sort the variables alphabetically}
+
+\item{add_measure_ident}{A logical (TRUE/FALSE), default is \code{TRUE}. If TRUE, the summary measures identifiers, e.g. median (min-max),
+mean (sd), n (\%) will be added to the Table 1.}
 }
 \value{
 A \code{data.frame} or \code{flextable} object, depending on the selected output option.

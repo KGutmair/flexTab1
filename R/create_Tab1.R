@@ -43,6 +43,12 @@
 #' @param flextable_output A logical (TRUE/FALSE), default is `TRUE`. If `TRUE`, the Table 1 will be returned as a
 #'        flextable object. If `FALSE`, it will be returned as a `data.frame`.
 #'
+#' @param sort_rows A character vector specifying the order in which the variables should appear in the output table.
+#'        The default is NULL, which will sort the variables alphabetically
+#'
+#'@param add_measure_ident A logical (TRUE/FALSE), default is `TRUE`. If TRUE, the summary measures identifiers, e.g. median (min-max),
+#'       mean (sd), n (%) will be added to the Table 1.
+#'
 #' @return A `data.frame` or `flextable` object, depending on the selected output option.
 #'         The returned Table 1 contains the summary measures specified in the input parameters,
 #'         including any chosen statistics, p-values, standardized mean differences (SMD), and missing value frequencies.
@@ -62,7 +68,9 @@ Table1_flex <- function(data,
                         display_pvalue = FALSE,
                         display_smd = FALSE,
                         display_missings = TRUE,
-                        flextable_output = TRUE) {
+                        flextable_output = TRUE,
+                        sort_rows = NULL,
+                        add_measure_ident = TRUE) {
 
   ###############################
   # Testing input parameters
@@ -236,19 +244,21 @@ Table1_flex <- function(data,
   }
 
   #############################################################
-  # Step 3: Designing the output table (flextable object)
+  # Step 3: Designing the output table
   ################################################################
-  if (flextable_output == TRUE) {
-    tab1 <- helper_flextable_fun(
+    tab1 <- helper_layout(
       tab1 = tab1,
       data = data,
       group_var = group_var,
       treatment_arm = treatment_arm,
       measures_cat = measures_cat,
       measures_num = measures_num,
-      cat_var = cat_vec
-    )
-  }
+      cat_var = cat_vec,
+      flextable_output = flextable_output,
+      sort_rows = sort_rows,
+      add_measure_ident = add_measure_ident)
+
+
   tab1
 }
 
