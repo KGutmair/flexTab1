@@ -16,15 +16,21 @@ knitr::opts_chunk$set(
 # flexTab1
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 # Overview
 
-The goal of flexTab1 is to create a highly flexible Table 1 for descriptive statistics, allowing users to customize the output format, choose appropriate summary measures, and optionally display missing values, p-values (testing for difference between two groups), and standardized mean differences (SMD). It is designed to adapt to various reporting needs and ensures comprehensive data summaries in a user-friendly format.
+This function creates a highly flexible Table 1 for descriptive statistics with options to customize both the statistical options and layout. It supports:
 
-Following costumations are available:
+-   **Statistical Flexibility**: Various summary measures can be selected for categorical (`"absolute"`, `"relative"`) and numerical variables, arranged in any combination (e.g., `"mean"` and `"sd"`, or `"mean"`, `"min"`, and `"max"`). `"Missing values"` frequencies for each variable can be optionally displayed. For group comparisons, options include displaying `"p-values"` and `"standardized mean differences (SMD)"`.
 
-This package is still an experimental version. 
+-   **Custom Layout**:The following layout options are available: row sorting, the option to display summary measure units (e.g., n (%), median (SD)), and an empty line after each variable for improved readability. The output can be generated as either a publication-ready flextable object or as a data frame, allowing for further modifications or integration with other table formatting packages.
+
+-   **Group Analysis**: Supports single and grouped tables, with the ability to compare treatment arms or other categories.Additionally, a nested group structure is supported, allowing for the comparison of superior groups (A, B, and C), each with two subgroups (x and y).
+
+
+This package is still an experimental version.
 
 ## Installation
 
@@ -37,7 +43,7 @@ devtools::install_github("KGutmair/flexTab1")
 
 ## Example
 
-# Table 1 for one group/treatment arm
+### Table 1 for one group/treatment arm
 
 ```{r, echo = TRUE, message = FALSE, warning = FALSE, out.width='50%'}
 library(dplyr)
@@ -62,15 +68,12 @@ pbc <- pbc %>%
    )
 
 tab1_ex %>%
-  fontsize(size = 11, part = "all") %>%
    line_spacing(space = 1.7, part = "all") %>%
    autofit() 
 
 ```
 
-
-
-# Table 1 for two treatment arms 
+### Table 1 for two treatment arms
 
 ```{r, echo = TRUE, message = FALSE, warning = FALSE, out.width='50%'}
 tab1_ex <- Table1_flex(
@@ -89,15 +92,12 @@ tab1_ex %>%
    autofit() 
 ```
 
+### Table 1 for nested groups
 
-# Table 1 for nested groups
-
-The Table1_flex also supports a nested group structure, meaning having subgroups within
-superior groups
+The Table1_flex also supports a nested group structure, meaning having subgroups within superior groups
 
 ```{r, echo = TRUE, message = FALSE, warning = FALSE, out.width='50%'}
-# The Table1_flex also supports a nested group structure, meaning having subgroups within
-# superior groups
+
 baseline_var <- c("age", "chol", "platelet", "stage")
 tab1_ex <- Table1_flex(
   data = pbc,
@@ -105,12 +105,14 @@ tab1_ex <- Table1_flex(
   group_var = "sex",
   treatment_arm = "trt",
   add_measure_ident = TRUE,
-  sort_rows = c("age", "stage", "chol", "platelet"),
   measures_cat = c("relative"),
   measures_num = c("mean","sd"),
   flextable_output = TRUE
 )
-flextable::autofit(tab1_ex)
+
+tab1_ex %>%
+   line_spacing(space = 2.0, part = "all") %>%
+   autofit() 
 
 
 ```
