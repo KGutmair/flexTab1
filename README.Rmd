@@ -27,16 +27,34 @@ This package is still an experimental version.
 You can install the development version of flexTab1 from [GitHub](https://github.com/KGutmair/flexTab1)
 
 ``` r
-# install.packages("pak")
-pak::pak("KGutmair/flexTab1")
+# install.packages("devtools")
+devtools::install_github("KGutmair/flexTab1")
 ```
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+Table 1 for one group/treatment arm
 
-```{r example}
+```{r, echo = TRUE, message = FALSE, warning = FALSE}
+library(dplyr)
 library(flexTab1)
-## basic example code
+
+
+# Load pbc data from the survival package
+pbc <- survival::pbc
+
+baseline_var <- c("age", "chol", "sex", "stage", "platelet")
+
+pbc <- pbc %>%
+     mutate_at(c("stage", "trt", "edema", "hepato"), function(x) as.factor(x)) %>%
+     filter(!is.na(trt)) %>%
+     mutate(trt = ifelse(trt == "1", "D-penicillmain", "Placebo"))
+
+ Table1_flex(
+     data = pbc,
+     variables = baseline_var 
+   )
+
+
 ```
 

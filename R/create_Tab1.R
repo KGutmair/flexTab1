@@ -58,6 +58,69 @@
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data
 #'
+#' @examples
+#' if (requireNamespace("dplyr", quietly = TRUE) && requireNamespace("survival", quietly = TRUE)) {
+#'   library(dplyr)
+#'   # Load pbc data from the survival package
+#'   pbc <- survival::pbc
+#'
+#'   baseline_var <- c("age", "chol", "sex", "stage", "platelet")
+#'
+#'   pbc <- pbc %>%
+#'     mutate_at(c("stage", "trt", "edema", "hepato"), function(x) as.factor(x)) %>%
+#'     filter(!is.na(trt)) %>%
+#'     mutate(trt = ifelse(trt == "1", "D-penicillmain", "Placebo"))
+#'
+#'   # Table 1 for one group -------------------------------------------
+#'
+#'   tab1_ex <- Table1_flex(
+#'     data = pbc,
+#'     variables = baseline_var
+#'   )
+#'   flextable::autofit(tab1_ex)
+#'
+#'   # Returning a data.frame for further processing
+#'   # and other summary measures
+#'
+#'   Table1_flex(
+#'     data = pbc,
+#'     variables = baseline_var,
+#'     measures_num = c("mean", "sd"),
+#'     measures_cat = "relative"
+#'   )
+#'
+#'
+#'   # Table 1 for two groups -----------------------------------------
+#'   # showing additionally missing values and p-vales
+#'
+#'   tab1_ex <- Table1_flex(
+#'     data = pbc,
+#'    variables = baseline_var,
+#'     group_var = "trt",
+#'     add_measure_ident = TRUE,
+#'     sort_rows = c("age", "sex", "stage", "chol", "platelet")
+#'   )
+#'
+#'   flextable::autofit(tab1_ex)
+#'
+#'
+#'   # Table 1 for a nested group structure ----------------------------
+#'
+#'   baseline_var <- c("age", "chol", "platelet", "stage")
+#'   tab1_ex <- Table1_flex(
+#'     data = pbc,
+#'     variables = baseline_var,
+#'     group_var = "sex",
+#'     treatment_arm = "trt",
+#'     add_measure_ident = TRUE,
+#'     sort_rows = c("age", "stage", "chol", "platelet"),
+#'     flextable_output = TRUE
+#'   )
+#'
+#'   flextable::autofit(tab1_ex)
+#' }
+
+#'
 Table1_flex <- function(data,
                         variables,
                         group_var = FALSE,

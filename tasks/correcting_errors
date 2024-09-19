@@ -1,0 +1,9 @@
+########################
+####### error message, if a variable of the sort_rows parameter is not included in the variables parameter:
+# at this state: the whole error message is repeated for every variable.
+# what I want: the mssage and after that all variables
+
+
+## nested data structire with p-values: wrkong ordering of the column names
+# at this stage: at first all summary measures followed by the p-values
+# what I want: the p-value after everx superior group
