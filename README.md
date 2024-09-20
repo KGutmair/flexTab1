@@ -65,22 +65,22 @@ pbc <- pbc %>%
      filter(!is.na(trt)) %>%
      mutate(trt = ifelse(trt == "1", "D-penicillmain", "Placebo"))
 
- tab1_ex <- Table1_flex(
+ tab1_example <- Table1_flex(
      data = pbc,
      variables = baseline_var 
    )
 
-tab1_ex %>%
+tab1_example %>%
    line_spacing(space = 1.7, part = "all") %>%
    autofit() 
 ```
 
-<img src="man/figures/README-unnamed-chunk-2-1.png" width="50%" />
+<img src="man/figures/README-unnamed-chunk-2-1.png" width="37%" />
 
 ### Table 1 for two treatment arms
 
 ``` r
-tab1_ex <- Table1_flex(
+tab1_example <- Table1_flex(
   data = pbc,
   variables = baseline_var,
   group_var = "trt",
@@ -91,12 +91,12 @@ tab1_ex <- Table1_flex(
   measures_num = c("median", "min", "max")
 )
 
-tab1_ex %>%
+tab1_example %>%
    line_spacing(space = 1.7, part = "all") %>%
    autofit() 
 ```
 
-<img src="man/figures/README-unnamed-chunk-3-1.png" width="50%" />
+<img src="man/figures/README-unnamed-chunk-3-1.png" width="52%" />
 
 ### Table 1 for nested groups
 
@@ -106,7 +106,7 @@ subgroups within superior groups
 ``` r
 
 baseline_var <- c("age", "chol", "platelet", "stage")
-tab1_ex <- Table1_flex(
+tab1_example <- Table1_flex(
   data = pbc,
   variables = baseline_var,
   group_var = "sex",
@@ -117,9 +117,9 @@ tab1_ex <- Table1_flex(
   flextable_output = TRUE
 )
 
-tab1_ex %>%
-   line_spacing(space = 2.0, part = "all") %>%
+tab1_example %>%
+   line_spacing(space = 1.7, part = "all") %>%
    autofit() 
 ```
 
-<img src="man/figures/README-unnamed-chunk-4-1.png" width="50%" />
+<img src="man/figures/README-unnamed-chunk-4-1.png" width="60%" />

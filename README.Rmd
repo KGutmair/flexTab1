@@ -45,7 +45,7 @@ devtools::install_github("KGutmair/flexTab1")
 
 ### Table 1 for one group/treatment arm
 
-```{r, echo = TRUE, message = FALSE, warning = FALSE, out.width='50%'}
+```{r, echo = TRUE, message = FALSE, warning = FALSE, out.width='37%'}
 library(dplyr)
 library(flexTab1)
 library(flextable)
@@ -62,12 +62,12 @@ pbc <- pbc %>%
      filter(!is.na(trt)) %>%
      mutate(trt = ifelse(trt == "1", "D-penicillmain", "Placebo"))
 
- tab1_ex <- Table1_flex(
+ tab1_example <- Table1_flex(
      data = pbc,
      variables = baseline_var 
    )
 
-tab1_ex %>%
+tab1_example %>%
    line_spacing(space = 1.7, part = "all") %>%
    autofit() 
 
@@ -75,8 +75,8 @@ tab1_ex %>%
 
 ### Table 1 for two treatment arms
 
-```{r, echo = TRUE, message = FALSE, warning = FALSE, out.width='50%'}
-tab1_ex <- Table1_flex(
+```{r, echo = TRUE, message = FALSE, warning = FALSE, out.width='52%'}
+tab1_example <- Table1_flex(
   data = pbc,
   variables = baseline_var,
   group_var = "trt",
@@ -87,7 +87,7 @@ tab1_ex <- Table1_flex(
   measures_num = c("median", "min", "max")
 )
 
-tab1_ex %>%
+tab1_example %>%
    line_spacing(space = 1.7, part = "all") %>%
    autofit() 
 ```
@@ -96,10 +96,10 @@ tab1_ex %>%
 
 The Table1_flex also supports a nested group structure, meaning having subgroups within superior groups
 
-```{r, echo = TRUE, message = FALSE, warning = FALSE, out.width='50%'}
+```{r, echo = TRUE, message = FALSE, warning = FALSE, out.width='60%'}
 
 baseline_var <- c("age", "chol", "platelet", "stage")
-tab1_ex <- Table1_flex(
+tab1_example <- Table1_flex(
   data = pbc,
   variables = baseline_var,
   group_var = "sex",
@@ -110,8 +110,8 @@ tab1_ex <- Table1_flex(
   flextable_output = TRUE
 )
 
-tab1_ex %>%
-   line_spacing(space = 2.0, part = "all") %>%
+tab1_example %>%
+   line_spacing(space = 1.7, part = "all") %>%
    autofit() 
 
 
