@@ -6,31 +6,32 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-# Overview
+## Overview
 
 This function creates a highly flexible Table 1 for descriptive
 statistics with options to customize both the statistical options and
 layout. It supports:
 
 - **Statistical Flexibility**: Various summary measures can be selected
-  for categorical (`"absolute"`, `"relative"`) and numerical variables,
-  arranged in any combination (e.g., `"mean"` and `"sd"`, or `"mean"`,
-  `"min"`, and `"max"`). `"Missing values"` frequencies for each
+  for categorical (*absolute*, *relative*) and numerical variables
+  (*mean*, *median*, *sd*, *min*, *max*, *quartile1*, *quartile3*),
+  arranged in any combination. *Missing values* frequencies for each
   variable can be optionally displayed. For group comparisons, options
-  include displaying `"p-values"` and
-  `"standardized mean differences (SMD)"`.
+  include displaying *p-values* and *standardized mean differences*
+  (SMD).
 
-- **Custom Layout**:The following layout options are available: row
-  sorting, the option to display summary measure units (e.g., n (%),
+- **Custom Layout**:The following layout options are available: *row
+  sorting*, the option to display *summary measure units* (e.g., n (%),
   median (SD)), and an empty line after each variable for improved
-  readability. The output can be generated as either a publication-ready
-  flextable object or as a data frame, allowing for further
-  modifications or integration with other table formatting packages.
+  readability. The output can be generated as either a
+  *publication-ready* `"flextable()"` *object* or as a `"data.frame"`,
+  allowing for further modifications or integration with other table
+  formatting packages.
 
-- **Group Analysis**: Supports single and grouped tables, with the
-  ability to compare treatment arms or other categories.Additionally, a
-  nested group structure is supported, allowing for the comparison of
-  superior groups (A, B, and C), each with two subgroups (x and y).
+- **Group Analysis**: Supports *single and grouped* summaries for
+  comparing treatment arms or other groups. Additionally, a nested group
+  structure is supported, allowing for the comparison of superior groups
+  (A, B, and C), each with two subgroups (x and y).
 
 This package is still an experimental version.
 
@@ -44,7 +45,7 @@ You can install the development version of flexTab1 from
 devtools::install_github("KGutmair/flexTab1")
 ```
 
-## Example
+## Usage
 
 ### Table 1 for one group/treatment arm
 
@@ -75,7 +76,7 @@ tab1_example %>%
    autofit() 
 ```
 
-<img src="man/figures/README-unnamed-chunk-2-1.png" width="37%" />
+<img src="man/figures/README-unnamed-chunk-2-1.png" width="47%" />
 
 ### Table 1 for two treatment arms
 
@@ -96,7 +97,7 @@ tab1_example %>%
    autofit() 
 ```
 
-<img src="man/figures/README-unnamed-chunk-3-1.png" width="52%" />
+<img src="man/figures/README-unnamed-chunk-3-1.png" width="62%" />
 
 ### Table 1 for nested groups
 
@@ -122,4 +123,4 @@ tab1_example %>%
    autofit() 
 ```
 
-<img src="man/figures/README-unnamed-chunk-4-1.png" width="60%" />
+<img src="man/figures/README-unnamed-chunk-4-1.png" width="70%" />
