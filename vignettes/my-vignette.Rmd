@@ -1,0 +1,187 @@
+---
+title: "flexTab1"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{flexTab1}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(flexTab1)
+```
+
+## Introduction
+
+The main purpose of this package is to create a highly flexible Table 1 for descriptive statistics with options to customize both the statistical options and layout. It supports following options:
+
+-   **Group stratification:** single groups `"group_var = FALSE"` as well as multiple groups for comparing baseline variables between groups. Additionlly, this package provides also the options to compare subgroups within a superior group (`"treatment_arm"` (e.g. compare the subgroups x and y within the superior groups A and B)
+
+-   **Statistical specifications:**
+
+    -   `"measure_cat"`, `"measure_num"`: specifies, which summary measures should be displayed. For categorial variables, one can choose between the combination of "absolute" and "relative" frequency. For numerical variables, one can choose between any combination of "mean", "median", standard deviation "sd", minimum "min", maximum "max", first quartile "quartile1", third quartile "quartile3".
+
+    -   `"display_missings"`: specifies, whether the absolute/relative frequencies of the missing values for each variable should be displayed.
+
+    -   `"display_pvalues"`: specifies, whether the baseline variables between groups should be tested for differences and its corresponding p-values should be displayed in the Table 1. Until now, only a comparison between two groups is supported (for categorial variables: Fisher\`s exact test, for numerical variables: Wilcoxon test).
+
+    -   `"display_smd"`: specifies, wether the standardized mean differences should be displayed. This supports only a two-group comparison.
+
+-   **Layout specifications:**
+
+    -   `"new_line"`: specifies, whether there should be a new line after each variable
+
+    -   `"sort_rows"`: specifies the order, in which the variables should be displayed in the Table1.
+
+    -   `"add_measure_ident"`: specifies, whether the summary measures identifiers (e.g. n (%), mean (SD) would be added to each variable.
+
+    -   `"flextable_output"`: specifies, whether the function should return the Table 1 as flextable object, which can be instantly added to a htlm, word or pdf-document. Another option included to return the Table 1 as data.frame allowing for further modifications or the applications of other tablular packages.
+    
+
+## Creation of Table 1 for different settings
+
+Here, the Mayo Clinic Primary Biliary Cholangitis Data from the survival package will be used for creating a Table 1. 
+
+We start with loading the required packages and the dataset in our repository. Furthermore, we get familiar with the variables in the data and doing some minor data cleaning necessary for the Table 1.
+```{r, message=FALSE}
+library("flexTab1")
+library("survival")
+library("dplyr")
+
+pbc <- survival::pbc
+help("pbc", package = "survival")
+
+pbc <- pbc %>%
+  mutate_at(c("stage", "trt", "edema", "hepato"), function(x) as.factor(x)) %>%
+  filter(!is.na(trt)) %>%
+  mutate(trt = ifelse(trt == "1", "D-penicillmain", "Placebo"))
+
+baseline_var <- c("age", "chol", "sex", "stage", "platelet")
+```
+
+The baseline_var vector contains all baseline variables for which we want to compute the Table 1.
+
+
+### One group
+It is important to show the baseline characteristics of the trial population in order to see, to which target polulation the results obtained from the rial population can be applied. 
+```{r, message=FALSE}
+tab1_ex <- Table1_flex(
+  data = pbc,
+  variables = baseline_var
+)
+flextable::autofit(tab1_ex)
+```
+
+This is a Table 1 for one group and with all prespecified settings of the Table1_flex function. No, we want to display the mean and standard deviation instead of the median and range for numerical variables. Furthermore, we want to change the order of the variables displayed in the Table1 and to delete the visualization of missing values.
+
+```{r, message=FALSE}
+tab1_ex1 <- Table1_flex(
+  data = pbc,
+  variables = baseline_var,
+  measures_num = c("mean", "sd"),
+  sort_rows = c("sex", "stage", "age", "platelet", "chol"),
+  display_missings = FALSE
+)
+flextable::autofit(tab1_ex1)
+```
+
+
+### Two groups
+
+Usually, in a medical or epidemiological trial, we want to compare the outcome of two or multiple treatment groups/groups under exposure. A central point here is to compare the baselie characteristics of the treatment groups to check for possible imbalances, which could introduce a bias in the result. 
+Here, we want to compare the baseline characteristics of the treatment group receiving D-penicillmain and placebo.
+
+```{r, message=FALSE}
+tab1_ex2 <- Table1_flex(
+  data = pbc,
+  variables = baseline_var,
+  group_var = "trt",
+  display_pvalue = TRUE
+)
+flextable::autofit(tab1_ex2)
+```
+
+To make the table more clear, we want to omit the summary measure units and introduce a new line after each variable.
+
+```{r, message=FALSE}
+tab1_ex3 <- Table1_flex(
+  data = pbc,
+  variables = baseline_var,
+  group_var = "trt",
+  display_pvalue = TRUE,
+  new_line = TRUE,
+  add_measure_ident = FALSE
+)
+flextable::autofit(tab1_ex3)
+```
+
+Note: This function also supports more than two groups. In case of the comparison of more than two groups, there is no function implemented for the caclulation of p-values and standardized mean differences.
+
+### Nested groups
+
+Sometimes, one wants to compare subgroups within superior groups. In this example, we want to compare the baseline characteristics between the male and female group within each treatment group. Note, tht this example is only for illustrational purpose. 
+
+```{r, message=FALSE}
+baseline_var <- c("age", "chol", "platelet", "stage")
+tab1_ex4 <- Table1_flex(
+  data = pbc,
+  variables = baseline_var,
+  group_var = "sex",
+  treatment_arm = "trt",
+  flextable_output = TRUE,
+  add_measure_ident = FALSE
+)
+flextable::autofit(tab1_ex4)
+```
+
+
+## Further processing beyond the implemented features in `"Table1_flex"`
+
+If you prefer another table package than flextable or just wants to modify something in the Table 1, there is the option to het the Table 1 returned as `"data.frame"`.
+
+```{r, message=FALSE}
+tab1_ex2_df <- Table1_flex(
+  data = pbc,
+  variables = baseline_var,
+  group_var = "trt",
+  display_pvalue = TRUE,
+  flextable_output = FALSE
+)
+tab1_ex2_df
+```
+
+Of course, there is also the option to further modify the layout of the flextable object thank to the extensive layout options provided by the flextable package.
+For exapmple, we want to remove the horizontal lines after every baseline variable. Furthermore, we want to adapt the font size. 
+
+```{r, message=FALSE}
+tab1_ex2 <- Table1_flex(
+  data = pbc,
+  variables = baseline_var,
+  group_var = "trt",
+  display_pvalue = TRUE,
+  flextable_output = TRUE, 
+  add_measure_ident = FALSE
+)
+
+# Doing further adaptions using the flextable package
+library(officer)
+library(flextable)
+big_border <- fp_border(color = "black", width = 1.5, style = "solid")
+tab1_ex2 <- tab1_ex2 %>%
+  border_remove() %>%
+  hline_top(part = "header", border = big_border) %>%
+  hline_top(part = "body", border = big_border) %>%
+  hline_bottom(part = "body", border = big_border) %>%
+  fontsize(size = 9, part = "all")
+
+flextable::autofit(tab1_ex2)
+```
+
+## References
