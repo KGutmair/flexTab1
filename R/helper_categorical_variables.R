@@ -25,6 +25,7 @@
 #' @importFrom tidyr all_of
 #' @importFrom rlang sym .data
 #'
+#'
 #' @noRd
 
 # old: tab1_categorical

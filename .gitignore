@@ -5,3 +5,5 @@
 .DS_Store
 ^tasks/
 inst/doc
+/doc/
+/Meta/

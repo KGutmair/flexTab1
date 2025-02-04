@@ -25,7 +25,7 @@
 #'          for missing values specified in the input parameters.
 #' @noRd
 #' @importFrom dplyr summarize_at select_if mutate relocate select rename group_by slice
-#' summarise_at %>%
+#' summarise_at %>% last_col across contains
 #' @importFrom magrittr set_colnames
 #' @importFrom tidyr all_of
 #' @importFrom rlang sym
@@ -63,6 +63,23 @@ helper_summarize_missings <- function(data,
     tab2_2 <- tab2 %>%
       set_colnames("relative_freq") %>%
       mutate(variable = rownames(tab2))
+
+
+    # Problem: small absolute value of missings meaning percentage is zero
+    # this means, that I do not have this variable row in the realtive frequencies
+    tab2_2 <- merge(data.frame(variable = tab1_1[, "variable"]), tab2_2,
+                    by = "variable", all.x = TRUE, sort = FALSE)
+    tab2_2 <- tab2_2 %>%
+      relocate(variable, .after = last_col())
+
+
+    # Problem: variables are not yet arranged
+    tab1_1 <- tab1_1 %>% arrange(variable)
+    tab2_2 <- tab2_2 %>% arrange(variable)
+
+    # transform the NA to < 1%
+    tab2_2 <- tab2_2 %>%
+      mutate(across(contains("relative_freq_"), ~ ifelse(is.na(.), "< 1", .)))
 
     tab3 <- tab1_1
     tab3$measure <- paste0(tab1_1$n, "(", tab2_2$relative_freq, ")")
@@ -112,10 +129,14 @@ helper_summarize_missings <- function(data,
                 select_if(~ !all(is.na(.) | . == 0))) %>%
       data.frame()
 
+
     tab1_1 <- tab1 %>%
       set_colnames(paste0("n_", tab1[1, ])) %>%
       slice(-1) %>%
       mutate(variable = rownames(tab1)[-1])
+
+
+
 
     # relative frequencies
     tab2 <- t(data1 %>%
@@ -128,11 +149,29 @@ helper_summarize_missings <- function(data,
     tab2_2 <- tab2 %>%
       set_colnames(paste0("relative_freq_", tab2[1, ])) %>%
       slice(-1) %>%
-      mutate(variable = rownames(tab1)[-1])
+      mutate(variable = rownames(tab2)[-1])
+
+
+    # Problem: small absolute value of missings meaning percentage is zero
+    tab2_2 <- merge(data.frame(variable = tab1_1[, "variable"]), tab2_2,
+                    by = "variable", all.x = TRUE, sort = FALSE)
+    tab2_2 <- tab2_2 %>%
+      relocate(variable, .after = last_col())
+    #return(tab2_2)
+
+    # Problem: variables are not yet arranged
+    tab1_1 <- tab1_1 %>% arrange(variable)
+    tab2_2 <- tab2_2 %>% arrange(variable)
+
+
+    # transform the NA to < 1%
+    tab2_2 <- tab2_2 %>%
+      mutate(across(contains("relative_freq_"), ~ ifelse(is.na(.), "< 1", .)))
 
     tab3 <- tab1_1
     for (i in seq_len(ncol(tab1_1) - 1)) {
       tab3[, i] <- paste0(tab1_1[, i], "(", tab2_2[, i], ")")
+
     }
     colnames(tab3) <- c(paste0("measure_", tab1[1, ]), "variable")
     tab4 <-

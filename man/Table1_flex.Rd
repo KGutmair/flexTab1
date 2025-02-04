@@ -17,7 +17,9 @@ Table1_flex(
   display_missings = TRUE,
   flextable_output = TRUE,
   sort_rows = NULL,
-  add_measure_ident = TRUE
+  add_measure_ident = TRUE,
+  treatment_order = NULL,
+  group_order = NULL
 )
 }
 \arguments{
@@ -63,6 +65,14 @@ The default is NULL, which will sort the variables alphabetically}
 
 \item{add_measure_ident}{A logical (TRUE/FALSE), default is \code{TRUE}. If TRUE, the summary measures identifiers, e.g. median (min-max),
 mean (sd), n (\%) will be added to the Table 1.}
+
+\item{treatment_order}{character vector. If the varaible treatment_arm was specified, then
+with this argument one can set the desired order of the colums of the treatment arms in the output table.
+This character vector contains the categories of the treatment_arm variable in the desirered order.}
+
+\item{group_order}{character vector. If the varaible group_var was specified, then
+with this argument one can set the desired order of the colums of the grouping variables in the output table.
+This character vector contains the categories of the grouping variable in the desirered order.}
 }
 \value{
 A \code{data.frame} or \code{flextable} object, depending on the selected output option.
@@ -113,7 +123,7 @@ if (requireNamespace("dplyr", quietly = TRUE) && requireNamespace("survival", qu
 
   tab1_ex <- Table1_flex(
     data = pbc,
-   variables = baseline_var,
+    variables = baseline_var,
     group_var = "trt",
     add_measure_ident = TRUE,
     sort_rows = c("age", "sex", "stage", "chol", "platelet")

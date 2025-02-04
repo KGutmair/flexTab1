@@ -7,3 +7,10 @@
 ## nested data structire with p-values: wrkong ordering of the column names
 # at this stage: at first all summary measures followed by the p-values
 # what I want: the p-value after everx superior group
+
+# urgent: in the Rm project weighting MI PS arm A, the function does not work, it says that there is an empty
+# data frame and it cannot add any new colnames. Was testing also the table1 examples and the one of only PS CCA, somethimes, with a certain combination of baseline variables it works and sometimes not, never works with single variables
+# Solution: I receive this error messsage, I I do not have any missings in any of the variables
+
+# Probem, wenn ich bei einer Variable oder allgemein nur für eine Gruppe Beobachtungen habe, für die andere aber nicht
+

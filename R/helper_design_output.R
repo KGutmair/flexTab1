@@ -42,11 +42,16 @@ helper_layout <- function(tab1,
                           new_line = FALSE,
                           flextable_output = TRUE,
                           sort_rows = NULL,
-                          add_measure_ident = TRUE) {
+                          add_measure_ident = TRUE,
+                          treatment_order = NULL,
+                          group_order = NULL) {
+
   # Ordering rows
   tab1 <- tab1 %>%
     arrange(name) %>%
     arrange(factor(name, levels = sort_rows))
+
+
 
   # adding summary measures identifiers to the variable names
   if (add_measure_ident == TRUE) {
@@ -177,19 +182,25 @@ helper_layout <- function(tab1,
     helper_col <- gsub(".*\\_", "", helper_col)
 
 
+    # print(c(
+    #   "name", "variable", number_group$new_col[match(helper_col, number_group$group)],
+    #   dub_var
+    # ))
+
+
     colnames(tab1) <- c(
       "name", "variable", number_group$new_col[match(helper_col, number_group$group)],
       dub_var
     )
 
     # reorder the columns
-    helper_col <- colnames(tab1)
-    helper_col <- helper_col[!helper_col %in% c("name", "variable")]
-    new_order <- c("name", "variable", helper_col)
-
-    tab1 <- tab1 %>%
-      relocate(all_of(new_order))
+    tab1 <- sort_columns(
+      data = tab1,
+      treatment_order = treatment_order,
+      group_order = group_order
+    )
   }
+
 
 
 
