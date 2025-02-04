@@ -12,6 +12,7 @@ coverage](https://codecov.io/gh/KGutmair/flexTab1/graph/badge.svg)](https://app.
 
 ## Overview
 
+CAVE: This function is still in development mode. 
 This function creates a highly flexible Table 1 for descriptive
 statistics with options to customize both the statistical options and
 layout. It supports:
