@@ -36,81 +36,124 @@
 #'
 #' @return A `data.frame` containing the summary measures (one column for each summary measure)
 #'         specified in the input parameters.
-#' @importFrom dplyr summarize mutate relocate select rename group_by summarise_at %>%
-#' @importFrom data.table dcast setDT as.data.table
-#' @importFrom tidyr all_of
-#' @importFrom rlang sym
 #' @importFrom stats sd quantile median
 #'
 #' @noRd
 #'
 helper_summarize_num <- function(data,
-                         num_vec,
-                         group_var = FALSE,
-                         treatment_arm = FALSE,
-                         new_line = FALSE,
-                         measures_num = c("median", "min", "max"),
-                         measure_style = FALSE) {
+                                 num_vec,
+                                 group_var = FALSE,
+                                 treatment_arm = FALSE,
+                                 new_line = FALSE,
+                                 measures_num = c("median", "min", "max"),
+                                 measure_style = FALSE) {
 
 
   tab1_list <- list()
-  i <- 1
+  #--------------------------------------------------
+  # summarize function
+  #--------------------------------------------------
 
+  safe_num <- function(expr) {
+    out <- suppressWarnings(expr)
+
+    if (!is.finite(out)) {
+      return(NA)
+    }
+    out
+  }
+
+  summarize_numeric <- function(x) {
+
+    data.frame(
+      mean = safe_num(round(mean(x, na.rm = TRUE), 2)),
+      sd = safe_num(round(sd(x, na.rm = TRUE), 2)),
+      quantile1 = safe_num(unname(round(quantile(x, 0.25, na.rm = TRUE), 2))),
+      median = safe_num( round(median(x, na.rm = TRUE), 2)),
+      quantile3 = safe_num( unname(round(quantile(x, 0.75, na.rm = TRUE), 2))),
+      min = safe_num(round(min(x, na.rm = TRUE), 2)),
+      max = safe_num(round(max(x, na.rm = TRUE), 2)))
+  }
+
+
+  #---------------------------------------------------------------------------------
   # no grouping variable
-  if (is.logical(group_var)) {
-    # if string for numeric variables is empty, return an empty data.frame
+  #---------------------------------------------------------------------------------
+  if (is.logical(group_var) & is.logical(treatment_arm)) {
+
+    #----------------------------------------------------------------
+    # if there are no numeric variables for which descriptive measures can be
+    # computed, return an empty dataframe with the colnames name, variable, measure
+    #----------------------------------------------------------------
     if (length(num_vec) == 0) {
       row_names <- c("name", measures_num, "variable")
       res_tab1 <- as.data.frame(matrix(ncol = length(row_names)))
       colnames(res_tab1) <- row_names
       res_tab1 <- res_tab1[-1, ]
-    } else {
-      for (param in num_vec) {
-        param1 <- sym(param)
 
-        data1 <- data %>%
-          dplyr::summarize(
-            mean = round(mean(!!param1, na.rm = TRUE), 2),
-            sd = round(sd(!!param1, na.rm = TRUE), 2),
-            quantile1 = round(quantile(!!param1, prob = 0.25, na.rm = TRUE), 2),
-            median = round(median(!!param1, na.rm = TRUE), 2),
-            quantile3 = round(quantile(!!param1, prob = 0.75, na.rm = TRUE), 2),
-            min = (round(range(!!param1, na.rm = TRUE), 2))[1],
-            max = (round(range(!!param1, na.rm = TRUE), 2))[2]
-          ) %>%
-          mutate(name = param) %>%
-          relocate(name, .before = mean)
+      #------------------------------------------------------------
+      # if there are numeric variables given, calculate for them all descriptive
+      # measures
+      #-----------------------------------------------------------
+    } else {
+      tab1_list <- lapply(num_vec, function(param) {
+
+        data1 <- cbind(
+          name = param,
+          summarize_numeric(data[[param]])
+        )
 
         if (new_line) {
-          data1 <- rbind(c(param, rep(NA, times = 7)), data1)
+
+          empty_row <- data.frame(
+            matrix(NA, nrow = 1, ncol = ncol(data1))
+          )
+
+          names(empty_row) <- names(data1)
+          empty_row$name <- param
+          data1 <- rbind(empty_row, data1)
         }
 
-        tab1_list[[i]] <- data1
-        i <- i + 1
-      }
-      res_tab <- do.call("rbind", tab1_list)
+        data1
+      })
 
-      res_tab1 <- res_tab %>%
-        select(all_of(c("name", measures_num))) %>%
-        mutate(variable = NA)
+      res_tab <- do.call(rbind, tab1_list)
+
+     # select only the requested measures out of all measures
+
+      res_tab1 <- res_tab[, c("name", measures_num), drop = FALSE]
+      res_tab1$variable <- NA
     }
-    # more than one arm = grouping variable not empty
+
+    #---------------------------------------------------------------------------------
+    # descriptive measures stratified after one or two grouping variables
+    #---------------------------------------------------------------------------------
   } else {
-    if (!is.logical(treatment_arm)) {
-      group_var1 <- sym(group_var)
-      treatment_arm1 <- sym(treatment_arm)
+    # Preparation: renaming of column names to group
+    # if we have both, treatment arm and grouping variable
+    if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+      # merge the treatment and group variables into one variable
+      data1 <- data
+      data1$group <- paste(
+        data[[treatment_arm]],
+        data[[group_var]],
+        sep = " "
+      )
 
-      data1 <- data %>%
-        rename(
-          group = !!group_var1,
-          treatment_arm = !!treatment_arm1
-        ) %>%
-        mutate(group = paste(treatment_arm, group, sep = " "))
+    } else if (!is.logical(treatment_arm)) {
+      # only grouping variable
+      data1 <- data
+      data1$group <- data[[treatment_arm]]
     } else {
-      group_var1 <- sym(group_var)
-      data1 <- data %>%
-        rename(group = !!group_var1)
+      data1 <- data
+      data1$group <- data[[group_var]]
     }
+
+    #---------------------------------------------------------------------
+    # if there are no numeric variables for which descriptive measures can be
+    # computed, return an empty dataframe with the colnames name, variable,
+    # measure stratified by group
+    #----------------------------------------------------------------------
     if (length(num_vec) == 0) {
       rwo_names1 <- expand.grid(unique(data1$group), measures_num)
       row_names2 <- sprintf("%s_%s", rwo_names1[, 2], rwo_names1[, 1])
@@ -119,61 +162,63 @@ helper_summarize_num <- function(data,
       colnames(res_tab1) <- row_names
       res_tab1 <- res_tab1[-1, ]
     } else {
-      for (param in num_vec) {
-        param1 <- sym(param)
 
-        data2 <- data1 %>%
-          group_by(group) %>%
-          dplyr::summarize(
-            mean = round(mean(!!param1, na.rm = TRUE), 2),
-            sd = round(sd(!!param1, na.rm = TRUE), 2),
-            quantile1 = round(quantile(!!param1, prob = 0.25, na.rm = TRUE), 2),
-            median = round(median(!!param1, na.rm = TRUE), 2),
-            quantile3 = round(quantile(!!param1, prob = 0.75, na.rm = TRUE), 2),
-            min = (round(range(!!param1, na.rm = TRUE), 2))[1],
-            max = (round(range(!!param1, na.rm = TRUE), 2))[2]
-          ) %>%
-          mutate(name = param) %>%
-          relocate(name, .before = group) %>%
-          data.frame()
+      #------------------------------------------------------------
+      # if there are numeric variables given, calculate for them all descriptive
+      # measures
+      #-----------------------------------------------------------
+      tab1_list <- lapply(num_vec, function(param) {
 
-        data3 <-
-          as.data.frame(dcast(
-            as.data.table(data2),
-            name ~ group,
-            value.var = c(
-              "mean",
-              "sd",
-              "quantile1",
-              "median",
-              "quantile3",
-              "min",
-              "max"
-            )
-          ))
+        # split variable by group
+        split_x <- split(data1[[param]], data1$group)
+        # calculate summaries per group
+        stats <- lapply(split_x, summarize_numeric)
+        # convert to one-row wide data.frame
+        values <- unlist(stats)
 
+        names(values) <- paste0(
+          rep(names(stats[[1]]), times = length(stats)),
+          "_",
+          rep(names(stats), each = length(stats[[1]]))
+        )
+
+        data3 <- data.frame(
+          name = param,
+          as.list(values),
+          check.names = FALSE
+        )
+
+        # optional empty line
         if (new_line) {
-          data3 <- rbind(c(param, rep(NA, times = ncol(data3) - 1)), data3)
+          empty_row <- as.data.frame(
+            as.list(rep(NA, ncol(data3)))
+          )
+          names(empty_row) <- names(data3)
+          empty_row$name <- param
+          data3 <- rbind(empty_row, data3)
         }
-        tab1_list[[i]] <- data3
-        i <- i + 1
-      }
+        rownames(data3) <- NULL
+        data3
+      })
 
-      res_tab <- do.call("rbind", tab1_list)
-      keep_var <- c()
-      for (i in seq_along(measures_num)) {
-        keep_var <-
-          c(keep_var, paste0(measures_num[i], "_", unique(data2$group)))
-      }
+      res_tab <- do.call(rbind, tab1_list)
 
-      res_tab1 <- res_tab %>%
-        select(all_of(c("name", keep_var))) %>%
-        mutate(variable = NA) %>%
-        relocate(variable, .after = name)
+      # keep requested measures
+      groups <- unique(data1$group)
+      keep_var <- as.vector(
+        outer(measures_num, groups, paste, sep = "_")
+      )
+
+      res_tab1 <- res_tab[, c("name", keep_var), drop = FALSE]
+      res_tab1$variable <- NA
+      res_tab1 <- res_tab1[
+        ,
+        c("name", "variable", keep_var)
+      ]
     }
   }
   if (measure_style) {
-    if (length(measures_num) > 3) {
+     if (length(measures_num) > 3) {
       cat(
         "This option is only available, if the number of measures per observations does not exceed three. Returning the result without the option measure_style"
       )
@@ -183,7 +228,8 @@ helper_summarize_num <- function(data,
         group_var = group_var,
         treatment_arm = treatment_arm,
         measures_num = measures_num,
-        tab_num_measure = res_tab1
+        tab_num_measure = res_tab1,
+        num_vec = num_vec
       )
     }
   }
@@ -217,67 +263,130 @@ helper_summarize_num <- function(data,
 #' @return A `data.frame` containing the summary measures specified in the input parameters.
 #'         If more than one summary measure is chosen, the summary measures are merged into
 #'         one column
-#' @importFrom dplyr rename mutate select mutate_at %>%
-#' @importFrom tidyr all_of
-#' @importFrom rlang sym :=
 #' @noRd
 
 num_unify_names <- function(data,
                             group_var = FALSE,
                             treatment_arm = FALSE,
                             measures_num,
-                            tab_num_measure) {
-  # 1. Only one group
-  if (is.logical(group_var)) {
-    # 1. One measure
+                            tab_num_measure,
+                            num_vec = num_vec) {
+
+  #--------------------------------------------------------------------------------------
+  # 1. Tidy data.frame without stratification/grouping variable
+  #------------------------------------------------------------------------------------
+  if (is.logical(group_var) & is.logical(treatment_arm)) {
+
+    #----------------------------------------------------------------
+    # no numeric variables given, for which descriptive measures can
+    # be calculated: return empty dataframe with name, variable, measure
+    #-------------------------------------------------------------
+    if(length(num_vec) == 0) {
+      tab_num_measure <- data.frame(
+        name = character(),
+        variable = character(),
+        measure = character()
+      )
+    } else {
+      #---------------------------
+      # a, One descriptive measure given
+      #----------------------------
     if (length(measures_num) == 1) {
-      tab_num_measure <- tab_num_measure %>%
-        rename(measure = !!sym(measures_num))
+      names(tab_num_measure)[names(tab_num_measure) == measures_num] <- "measure"
+      tab_num_measure <- tab_num_measure[, c("name", "variable", "measure")]
+
+      #---------------------------
+      # a, Two descriptive measure given
+      #----------------------------
     } else if (length(measures_num) == 2) {
-      tab_num_measure <- tab_num_measure %>%
-        mutate(measure = paste0(!!sym(measures_num[1]), " (", !!sym(measures_num[2]), ")")) %>%
-        select(all_of(c("name", "variable", "measure")))
+
+      tab_num_measure$measure <- paste0(
+        tab_num_measure[[measures_num[1]]],
+        " (",
+        tab_num_measure[[measures_num[2]]],
+        ")"
+      )
+
+      tab_num_measure <- tab_num_measure[, c("name", "variable", "measure")]
+
+      #---------------------------
+      # a,Three descriptive measure given
+      #----------------------------
     } else {
-      tab_num_measure <- tab_num_measure %>%
-        mutate(measure = paste0(
-          !!sym(measures_num[1]), " (", !!sym(measures_num[2]),
-          "-", !!sym(measures_num[3]), ")"
-        )) %>%
-        select(all_of(c("name", "variable", "measure")))
+
+      tab_num_measure$measure <- paste0(
+        tab_num_measure[[measures_num[1]]],
+        " (",
+        tab_num_measure[[measures_num[2]]],
+        "-",
+        tab_num_measure[[measures_num[3]]],
+        ")"
+      )
+      tab_num_measure <- tab_num_measure[, c("name", "variable", "measure")]
     }
-    # more than one group
+}
+    #--------------------------------------------------------------------------------------
+    # 1. Tidy data.frame with stratification
+    #------------------------------------------------------------------------------------
   } else {
-    if (!is.logical(treatment_arm)) {
-      group_var1 <- sym(group_var)
-      treatment_arm1 <- sym(treatment_arm)
+    if (!is.logical(treatment_arm) & !is.logical(group_var)) {
 
-      data <- data %>%
-        rename(
-          group = !!group_var1,
-          treatment_arm = !!treatment_arm1
-        ) %>%
-        mutate(group = paste(treatment_arm, group, sep = " "))
+      names(data)[names(data) == group_var] <- "group"
+      names(data)[names(data) == treatment_arm] <- "treatment_arm"
+
+      data$group <- paste(
+        data$treatment_arm,
+        data$group,
+        sep = " "
+      )
+
+    } else if (!is.logical(treatment_arm)){
+      names(data)[names(data) == treatment_arm] <- "group"
     } else {
-      group_var1 <- sym(group_var)
-      data <- data %>%
-        rename(group = !!group_var1)
+      names(data)[names(data) == group_var] <- "group"
     }
 
-    # only one measure
+    #-------------------------------
+    # no numeric variables given: return empty data.frame
+    #-----------------------------
+    if(length(num_vec) == 0 & length(measures_num) >= 1) {
+      add_vars <- c("name", "variable")
+      var <- paste0("measure_", unique(data$group))
+
+      tab_num_measure <- data.frame(
+        matrix(nrow = 0, ncol = length(c(add_vars, var)))
+      )
+
+      names(tab_num_measure) <- c(add_vars, var)
+      #------------------------------------
+      # numeric variables given, for which descriptive measures
+      # had been calculated
+      #----------------------------------
+    } else {
+      #---------------------------
+      # a,One descriptive measure given
+      #----------------------------
+    # only one measure: replace median_1 with measure_1 or min_1 with measure_1
     if (length(measures_num) == 1) {
       names_new <- colnames(tab_num_measure)
       colnames(tab_num_measure) <- sub(".*_", "measure_", names_new)
-    } else if (length(measures_num) == 2) {
+      #---------------------------
+      # a,Two descriptive measures given
+      #----------------------------
+      } else if (length(measures_num) == 2) {
       var <- paste0("measure_", unique(data$group))
       component1 <- paste0(measures_num[1], "_", unique(data$group))
       component2 <- paste0(measures_num[2], "_", unique(data$group))
 
       for (i in seq_along(var)) {
-        tab_num_measure <- tab_num_measure %>%
-          mutate(!!sym(var[i]) := paste0(!!sym(component1[i]), " (", !!sym(component2[i]), ")"))
-      }
-      tab_num_measure <- tab_num_measure %>%
-        select(all_of(c("name", "variable", var)))
+        tab_num_measure[[var[i]]] <- paste0(tab_num_measure[[component1[i]]]," (",
+          tab_num_measure[[component2[i]]],")")}
+
+      tab_num_measure <- tab_num_measure[ ,c("name", "variable", var)]
+
+      #---------------------------
+      # a,Three descriptive measure given
+      #----------------------------
     } else {
       var <- paste0("measure_", unique(data$group))
       component1 <- paste0(measures_num[1], "_", unique(data$group))
@@ -285,14 +394,12 @@ num_unify_names <- function(data,
       component3 <- paste0(measures_num[3], "_", unique(data$group))
 
       for (i in seq_along(var)) {
-        tab_num_measure <- tab_num_measure %>%
-          mutate(!!sym(var[i]) := paste0(
-            !!sym(component1[i]), " (", !!sym(component2[i]),
-            "-", !!sym(component3[i]), ")"
-          ))
-      }
-      tab_num_measure <- tab_num_measure %>%
-        select(all_of(c("name", "variable", var)))
+        tab_num_measure[[var[i]]] <- paste0(tab_num_measure[[component1[i]]]," (",
+                                            tab_num_measure[[component2[i]]],"-",
+                                            tab_num_measure[[component3[i]]], ")")}
+
+      tab_num_measure <- tab_num_measure[ ,c("name", "variable", var)]
+    }
     }
   }
   tidy_rows <- function(x) {
@@ -302,12 +409,10 @@ num_unify_names <- function(data,
   }
   var <- colnames(tab_num_measure)
   var <- var[!var %in% c("variable")]
-  tab_num_measure <- tab_num_measure %>%
-    mutate_at(var, tidy_rows)
+  tab_num_measure[var] <- lapply(
+    tab_num_measure[var],
+    tidy_rows
+  )
   tab_num_measure
 }
 
-
-for (i in seq_len(3)) {
-  print(i)
-}
