@@ -20,10 +20,6 @@
 #' @return A `data.frame` containing the summary measures (one column for each summary measure)
 #'         specified in the input parameters.
 #'
-#' @importFrom dplyr filter group_by summarize mutate rename relocate select %>% n
-#' @importFrom data.table dcast setDT
-#' @importFrom tidyr all_of
-#' @importFrom rlang sym .data
 #'
 #'
 #' @noRd
@@ -39,63 +35,113 @@ helper_summarize_cat <- function(data,
                             measure_style = FALSE) {
 
   tab1_list <- list()
-  i <- 1
-  if (is.logical(group_var)) {
+  all_measure_options <- c("absolute", "relative")
+  names_data <- c("n", "relative_freq")
+
+  #------------------------------------------------------
+  # Helper function for summarizing categorical variables
+  #------------------------------------------------------
+  summarize_categorical <- function(x) {
+    # remove missings
+    x <- x[!is.na(x)]
+    # all values missing of that variable
+    if (length(x) == 0) {
+      return(
+        data.frame(
+          variable = NA,
+          n = NA,
+          relative_freq = NA,
+          stringsAsFactors = FALSE
+        )
+      )
+    }
+    # frequencies
+    n <- table(x)
+    # output
+    data.frame(
+      variable = names(n),
+      n = as.numeric(n),
+      relative_freq = round(
+        as.numeric(n) / sum(n) * 100,
+        0
+      ),
+      row.names = NULL,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  #---------------------------------------------------------------------------------
+  # Only one group
+  #---------------------------------------------------------------------------------
+  if (is.logical(group_var) & is.logical(treatment_arm)) {
+    #--------------------------------------------------
+    # no categorical variables: return empty data.frame with name, variable, measure
+    #-------------------------------------------------
     if (length(cat_vec) == 0) {
-      all_measure_options <- c("absolute", "relative")
-      names_data <- c("n", "relative_freq")
       keep_vars <- names_data[match(measures_cat, all_measure_options)]
       row_names <- c("name", "variable", keep_vars)
       res_tab1 <- as.data.frame(matrix(ncol = length(row_names)))
       colnames(res_tab1) <- row_names
       res_tab1 <- res_tab1[-1, ]
     } else {
-      for (param in (cat_vec)) {
-        param1 <- sym(param)
-        tab1 <- data %>%
-          filter(!is.na(!!param1)) %>%
-          group_by(!!param1) %>%
-          summarise(n = n()) %>%
-          mutate(
-            relative_freq = round((n / sum(n)) * 100, 0),
-            name = param
-          )
-        colnames(tab1)[1] <- "variable"
+      #------------------------------------------------
+      # categorical variables for which measures are calculated
+      #-----------------------------------------------
+      tab1_list <- lapply(cat_vec, function(param) {
+
+        tab1 <- summarize_categorical(data[[param]])
+        tab1$name <- param
+        tab1 <- tab1[ ,c("name", "variable", "n", "relative_freq")]
+
         if (new_line) {
-          tab1 <- rbind(c(NA, NA, NA, param), tab1)
+        empty_row <- data.frame(
+          name = param,
+          variable = NA,
+          n = NA,
+          relative_freq = NA)
+
+
+        tab1 <- rbind(empty_row, tab1)
         }
-        tab1_list[[i]] <- tab1
-        i <- i + 1
-      }
+        tab1
+      })
+
       res_tab <- do.call("rbind", tab1_list)
 
       # select all the appropriate measure options
-      all_measure_options <- c("absolute", "relative")
-      names_data <- c("n", "relative_freq")
       keep_vars <-
         names_data[match(measures_cat, all_measure_options)]
       res_tab1 <- res_tab %>%
         relocate(name, .before = variable) %>%
         select(all_of(c("name", "variable", keep_vars)))
+
     }
   } else {
-    if (!is.logical(treatment_arm)) {
-      group_var1 <- sym(group_var)
-      treatment_arm1 <- sym(treatment_arm)
-      data1 <- data %>%
-        rename(
-          group = !!group_var1,
-          treatment_arm = !!treatment_arm1
-        ) %>%
-        mutate(group = paste(treatment_arm, group, sep = " "))
+    #---------------------------------------------------------------------------------
+    # grouping variable: at least two groups
+    #--------------------------------------------------------------------------------
+     if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+      # merge the treatment and group variables into one variable
+      data1 <- data
+      data1$group <- paste(
+        data[[treatment_arm]],
+        data[[group_var]],
+        sep = " "
+      )
+
+    } else if (!is.logical(treatment_arm)) {
+      # only grouping variable
+      data1 <- data
+      data1$group <- data[[treatment_arm]]
     } else {
-      group_var1 <- sym(group_var)
-      data1 <- data %>%
-        rename(group = !!group_var1)
+      data1 <- data
+      data1$group <- data[[group_var]]
     }
+
+    #--------------------------------------------------------------------
+    # no categorical variables present: return empty data.frame
+    #------------------------------------------------------------------
     if (length(cat_vec) == 0) {
-      all_measure_options <- c("absolute", "relative")
-      names_data <- c("n", "relative_freq")
       keep_vars <- names_data[match(measures_cat, all_measure_options)]
       rwo_names1 <- expand.grid(unique(data1$group), keep_vars)
       row_names2 <-
@@ -104,37 +150,100 @@ helper_summarize_cat <- function(data,
       res_tab1 <- as.data.frame(matrix(ncol = length(row_names)))
       colnames(res_tab1) <- row_names
       res_tab1 <- res_tab1[-1, ]
+      #---------------------------------------------------------
+      # categorical variables present
+      #--------------------------------------------------------
     } else {
-      tab1_list <- list()
-      i <- 1
-      for (param in (cat_vec)) {
-        param1 <- sym(param)
-        tab1 <- data1 %>%
-          filter(!is.na(!!param1)) %>%
-          group_by(group, !!param1) %>%
-          summarise(n = n()) %>%
-          group_by(group) %>%
-          mutate(
-            relative_freq = round((n / sum(n)) * 100, 0),
-            name = param
-          ) %>%
-          data.frame()
-        colnames(tab1)[2] <- "variable"
-        if (new_line) {
-          tab1 <- rbind(c(NA, NA, NA, NA, param), tab1)
+      tab1_list <- lapply(cat_vec, function(param) {
+        # split variable by group
+        split_x <- split(
+          data1[[param]],
+          data1$group
+        )
+
+        # summarize within each group
+        stats <- lapply(
+          split_x,
+          summarize_categorical)
+
+        # all occurring categories
+        all_levels <- unique(
+          unlist(
+            lapply(stats, function(x) x$variable)
+          )
+        )
+
+        # initialize output
+        out <- data.frame(
+          variable = all_levels,
+          name = param,
+          stringsAsFactors = FALSE
+        )
+
+        # add group summaries
+        for (grp in names(stats)) {
+
+          tmp <- stats[[grp]]
+
+          idx <- match(
+            out$variable,
+            tmp$variable
+          )
+
+          out[[paste0("n_", grp)]] <-
+            tmp$n[idx]
+
+          out[[paste0("relative_freq_", grp)]] <-
+            tmp$relative_freq[idx]
         }
-        tab1_list[[i]] <-
-          as.data.frame(dcast(
-            setDT(tab1),
-            variable + name ~ group,
-            value.var = c("n", "relative_freq")
-          ))
-        i <- i + 1
-      }
-      res_tab <- do.call("rbind", tab1_list)
+
+        # optional empty row
+        if (new_line) {
+
+        empty_row <- as.data.frame(
+          as.list(rep(NA, ncol(out)))
+        )
+
+        names(empty_row) <- names(out)
+
+        empty_row$name <- param
+
+        out <- rbind(empty_row, out)
+        }
+
+        rownames(out) <- NULL
+
+        # if the variable in one group strata is zero, then I want to remove the NA row
+        remove_row <- (
+          nrow(out) > 1 &&
+            any(is.na(out$variable)) &&
+            any(
+              apply(out, 1, function(x)
+                all(is.na(x[names(x) != "name"]))
+              )
+            )
+        )
+
+        if (remove_row) {
+
+          keep <- !apply(
+            out,
+            1,
+            function(x)
+              is.na(x["variable"]) &&
+              all(is.na(x[names(x) != "name"]))
+          )
+
+          out <- out[keep, , drop = FALSE]
+        }
+
+        out
+      })
+
+      # combine all variables
+      res_tab <- do.call(rbind, tab1_list)
+
       # select all the appropriate measure options
-      all_measure_options <- c("absolute", "relative")
-      names_data <- c("n", "relative_freq")
       keep_vars <-
         names_data[match(measures_cat, all_measure_options)]
       keep_var <- c()
@@ -153,7 +262,8 @@ helper_summarize_cat <- function(data,
       group_var = group_var,
       treatment_arm = treatment_arm,
       measures_cat = measures_cat,
-      tab_cat_measure = res_tab1
+      tab_cat_measure = res_tab1,
+      cat_vec = cat_vec
     )
   }
   res_tab1
@@ -185,10 +295,6 @@ helper_summarize_cat <- function(data,
 #' @return A `data.frame` containing the summary measures specified in the input parameters.
 #'         If more than one summary measure is chosen, the summary measures are merged into
 #'         one column
-#' @importFrom dplyr mutate select rename mutate_at
-#' @importFrom tidyr all_of
-#' @importFrom magrittr %>%
-#' @importFrom rlang sym :=
 #'
 #'
 #' @noRd
@@ -197,57 +303,104 @@ cat_unify_names <- function(data,
                             group_var = FALSE,
                             treatment_arm = FALSE,
                             measures_cat,
-                            tab_cat_measure) {
-  all_measure_options <- c("absolute", "relative")
+                            tab_cat_measure,
+                            cat_vec = cat_vec) {
+
+   all_measure_options <- c("absolute", "relative")
   names_data <- c("n", "relative_freq")
   keep_vars <- names_data[match(measures_cat, all_measure_options)]
 
+  #---------------------------------------------------------------------------------
   #1. Only one group
-  if (is.logical(group_var)) {
+  #---------------------------------------------------------------------------------
+  if (is.logical(group_var) & is.logical(treatment_arm)) {
+
+    #--------------------------------
+    # no categorical variables given
+    #-------------------------------
+    if(length(cat_vec) == 0) {
+      return(data.frame(
+        name = character(),
+        variable = character(),
+        measure = character()
+      ))
+    }
+
+    #-------------------------------------
     # 1. One measure
+    #-------------------------------------
     if (length(measures_cat) == 1) {
-      tab_cat_measure <- tab_cat_measure %>%
-        rename(measure = !!sym(keep_vars))
+      names(tab_cat_measure)[
+        names(tab_cat_measure) == keep_vars
+      ] <- "measure"
     } else {
       # two measures
-      tab_cat_measure <- tab_cat_measure %>%
-        mutate(measure = paste0(!!sym(keep_vars[1]), " (",!!sym(keep_vars[2]), ")")) %>%
-        select(all_of(c("name", "variable", "measure")))
+      tab_cat_measure$measure <- paste0(
+        tab_cat_measure[[keep_vars[1]]],
+        " (",
+        tab_cat_measure[[keep_vars[2]]],
+        ")")
+
+      tab_cat_measure <- tab_cat_measure[ ,c("name", "variable", "measure"), drop = FALSE]
+
     }
-    # 2. more than one group
   } else{
-    if (!is.logical(treatment_arm)) {
-      group_var1 <- sym(group_var)
-      treatment_arm1 <- sym(treatment_arm)
+    #------------------------------------------------------------------------------
+    # 2. At least two groups
+    #------------------------------------------------------------------------------
+    if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+      names(data)[names(data) == group_var] <- "group"
+      names(data)[names(data) == treatment_arm] <- "treatment_arm"
 
-      data <- data %>%
-        rename(group = !!group_var1,
-               treatment_arm = !!treatment_arm1) %>%
-        mutate(group = paste(treatment_arm, .data$group, sep = " "))
+      data$group <- paste(
+        data$treatment_arm,
+        data$group,
+        sep = " "
+      )
 
+    } else if (!is.logical(treatment_arm)){
+      names(data)[names(data) == treatment_arm] <- "group"
     } else {
-      group_var1 <- sym(group_var)
-      data <- data %>%
-        rename(group = !!group_var1)
+      names(data)[names(data) == group_var] <- "group"
     }
 
+    #-------------------------------
+    # no categorial variables given: return empty data.frame
+    #-----------------------------
+    if(length(cat_vec) == 0 & length(measures_cat) >= 1) {
+      add_vars <- c("name", "variable")
+      var <- paste0("measure_", unique(data$group))
+
+      tab_cat_measure <- data.frame(
+        matrix(nrow = 0, ncol = length(c(add_vars, var)))
+      )
+
+      names(tab_cat_measure) <- c(add_vars, var)
+      return(tab_cat_measure)
+    }
+    #----------------------------------------
+    # categorial variables given
+    #-------------------------------------
     # only one measure
     if (length(measures_cat) == 1) {
       names_new <- colnames(tab_cat_measure)
       colnames(tab_cat_measure) <- sub(".*_", "measure_", names_new)
     } else {
       # more than one measure
-      var <- paste0("measure_", unique(data$group))
-      component1 <- paste0(keep_vars[1], "_", unique(data$group))
-      component2 <- paste0(keep_vars[2], "_", unique(data$group))
+      groups <- unique(data$group)
+      var <- paste0("measure_", groups)
+
+      component1 <- paste0(keep_vars[1], "_", groups)
+      component2 <- paste0(keep_vars[2], "_", groups)
 
       for (i in seq_along(var)) {
-        tab_cat_measure <- tab_cat_measure %>%
-          mutate(!!sym(var[i]) := paste0(!!sym(component1[i]), " (",!!sym(component2[i]), ")"))
-      }
+        tab_cat_measure[[var[i]]] <- paste0(
+          tab_cat_measure[[component1[i]]],
+          " (",
+          tab_cat_measure[[component2[i]]],
+          ")" ) }
 
-      tab_cat_measure <- tab_cat_measure %>%
-        select(all_of(c("name", "variable", var)))
+      tab_cat_measure <- tab_cat_measure[ ,c("name", "variable", var), drop = FALSE]
     }
   }
   tidy_rows <- function(x) ifelse(x == "NA (NA)", NA, x)

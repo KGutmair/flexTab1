@@ -1,6 +1,9 @@
 utils::globalVariables(c("variable", "group", "name", "number", "estimate", "SMD",
                          "p-value", "treat_arm"))
 
+#---------------------------------------------------------------------------------------------
+# Testing numerical variables
+#---------------------------------------------------------------------------------------------
 
 main_path <- "/nfsmb/koll/katja.gutmair/MULTIPLY/rituximab_maintenance/repository"
 at <- readRDS(file = paste0(main_path,  "/02_data/created_data/triangle_at.rds"))
@@ -80,7 +83,7 @@ helper_summarize_num(data = arm_A,
                      treatment_arm = FALSE,
                      new_line = FALSE,
                      measures_num = c("min", "max"),
-                     measure_style = FALSE)
+                     measure_style = TRUE)
 
 #----------------------------------------------------------------------
 # 2. Two or more groups
@@ -193,8 +196,8 @@ helper_summarize_num(data = at2,
                      num_vec = num_vec1,
                      treatment_arm = "rnd",
                      new_line = FALSE,
-                     measures_num = c("median", "min", "max"),
-                     measure_style = TRUE)
+                     measures_num = c("median"),
+                     measure_style = FALSE)
 
 helper_summarize_num(data = at2,
                      num_vec = c(),
