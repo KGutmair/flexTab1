@@ -25,119 +25,55 @@
 
 helper_testing_num <- function(data,
                                num_vec,
-                               group_var = FALSE,
+                               group_var,
                                treatment_arm = FALSE) {
-
-# replace this with the code from numerical or cateogiral variables
-  # so that either group_var or treatment arm or both is accepted as
-  # grouping varaible
-  if (!is.logical(treatment_arm) & !is.logical(group_var)) {
-    # merge the treatment and group variables into one variable
-    data1 <- data
-    data1$group <- data[[group_var]]
-    data1$treat_arm <- data[[treatment_arm]]
-
-    number_arms <- length(unique(data1$treat_arm))
-    number_groups <- length(unique(data1$group))
-
-
-  } else if (!is.logical(group_var)) {
-    # only grouping variable
-    data1 <- data
-    data1$group <- data[[group_var]]
+  if (is.logical(treatment_arm)) {
+    # no treatment arm
+    group_var1 <- sym(group_var)
+    data1 <- data %>%
+      rename(group = !!group_var1)
     number_arms <- 1
     number_groups <- length(unique(data1$group))
   } else {
-    data1 <- data
-    data1$group <- data[[treatment_arm]]
-    number_arms <- 1
+    # multiple treatment arms
+    group_var1 <- sym(group_var)
+    arm_var1 <- sym(treatment_arm)
+
+    data1 <- data %>%
+      rename(
+        group = !!group_var1,
+        treat_arm = !!arm_var1
+      )
+    number_arms <- length(unique(data1$treat_arm))
     number_groups <- length(unique(data1$group))
   }
 
 
-
-
-
-#-------------------------------------------------------------------------------------
-# 1. Comparisons of two groups without nesting (those two groups can be placed in the group
-  # as well as in the arm argument)
-#------------------------------------------------------------------------------------
   if (number_groups == 2 & number_arms == 1) {
-    #----------------------------------------
-    # a, no numerical variables available
-    #---------------------------------------
+    # Comparison of two groups (no treatment arm)
     if (length(num_vec) == 0) {
       col_names <- c("name", "p-value")
       all_p <- as.data.frame(matrix(ncol = length(col_names)))
       colnames(all_p) <- col_names
-     #------------------------------------
-    # b, numerical variables available: calculate corresponding p-values
-    #------------------------------------
     } else {
-      # if one group has only NA in a specific variable, return NA
       p_values <-
         unlist(lapply(data1[, num_vec], function(x) {
-
-          tryCatch({
-
-            # remove rows with missing values in x or group
-            tmp <- data.frame(x = x, group = data1$group)
-            tmp <- tmp[complete.cases(tmp), ]
-
-            # check whether both groups contain observations
-            if(length(unique(tmp$group)) < 2) {
-              return(NA_real_)
-            }
-
-            wilcox.test(x ~ group, data = tmp)$p.value
-
-          }, error = function(e) {
-            NA_real_
-          })
-
+          (wilcox.test(x ~ group, data = data1))$p.value
         }))
       res <-
         data.frame(num_vec, ifelse(p_values >= 0.1, round(p_values, 2), round(p_values, 3)))
       colnames(res) <- c("name", "p-value")
-      all_p <- res
-      all_p$`p-value` = ifelse(all_p$`p-value` < 0.001, "< 0.001", all_p$`p-value`)
-
-      res <-
-        data.frame(num_vec, ifelse(p_values >= 0.1, round(p_values, 2), round(p_values, 3)))
-      colnames(res) <- c("name", "p-value")
-      all_p <- res
-      all_p$`p-value` = ifelse(all_p$`p-value` < 0.001, "< 0.001", all_p$`p-value`)
+      all_p <- res %>%
+        mutate(`p-value` = ifelse(`p-value` < 0.001, "< 0.001", `p-value`))
     }
-    #---------------------------------------------------------
-    #2. Comparisons of more than two groups without nesting
-    #--------------------------------------------------------
-  } else if ((number_groups > 2 & number_arms == 1)) {
-    return("this method is not implemented yet")
+  } else if (number_groups > 2 & number_arms == 1) {
+    print("this method is not implemented yet")
   } else {
-    #--------------------------------------------------------
-    # 3. Comparison of more than one arm, so nested structur
-    #----------------------------------------------------------
-
-    #---------------------------------------------
-    # a0: if number of groups > 2: p-value calculation not implemented yet
-    #--------------------------------------------
-
-    if (number_groups > 2) {
-      return("this method is not implemented yet")
-    }
-
-    #---------------------------------------------
-    # a, no numeric variables there
-    #---------------------------------------------
-    else if (length(num_vec) == 0) {
+    if (length(num_vec) == 0) {
       col_names <- paste(unique(data1$treat_arm), "p-value", sep = "_")
       col_names <- c("name", col_names)
       all_p <- as.data.frame(matrix(ncol = length(col_names)))
       colnames(all_p) <- col_names
-      #------------------------------------------
-      # b, numeric variables available and more than one treatment arm:
-      # So calculate within every treatment arm the comparisons p-values
-      #----------------------------------------
     } else {
       arms_list <- list()
       arms <- unique(data1$treat_arm)
@@ -146,37 +82,21 @@ helper_testing_num <- function(data,
         p_list <- list()
         i <- 1
 
-        data2 <- data1[data1$treat_arm == arms[k], ]
+        data2 <- data1 %>%
+          filter(treat_arm == arms[k])
 
         p_values <-
           unlist(lapply(data2[, num_vec], function(x) {
-
-            tryCatch({
-
-              # remove rows with missing values in x or group
-              tmp <- data.frame(x = x, group = data2$group)
-              tmp <- tmp[complete.cases(tmp), ]
-
-              # check whether both groups contain observations
-              if(length(unique(tmp$group)) < 2) {
-                return(NA_real_)
-              }
-
-              wilcox.test(x ~ group, data = tmp)$p.value
-
-            }, error = function(e) {
-              NA_real_
-            })
-
+            (wilcox.test(
+              x ~ group,
+              data = data2
+            ))$p.value
           }))
-
-
         res <-
           data.frame(num_vec, ifelse(p_values >= 0.1, round(p_values, 2), round(p_values, 3)))
         colnames(res) <- c("name", "p-value")
-        res_tab <- res
-        res_tab$`p-value` = ifelse(res_tab$`p-value` < 0.001, "< 0.001", res_tab$`p-value`)
-
+        res_tab <- res %>%
+          mutate(`p-value` = ifelse(`p-value` < 0.001, "< 0.001", `p-value`))
         names(res_tab)[names(res_tab) == "p-value"] <-
           paste0(arms[k], "_p-value")
         arms_list[[k]] <- res_tab
@@ -218,10 +138,7 @@ helper_testing_num <- function(data,
 #' @importFrom rlang sym
 #' @noRd
 
-helper_testing_cat <- function(data,
-                               cat_vec,
-                               group_var,
-                               treatment_arm = FALSE) {
+helper_testing_cat <- function(data, cat_vec, group_var, treatment_arm = FALSE) {
 
   if (is.logical(treatment_arm)) {
     group_var1 <- sym(group_var)

@@ -24,12 +24,7 @@
 #' @return A `data.frame` containing the summary measures (one column for each summary measure)
 #'          for missing values specified in the input parameters.
 #' @noRd
-#' @importFrom dplyr summarize_at select_if mutate relocate select rename group_by slice
-#' summarise_at %>% last_col across contains
-#' @importFrom magrittr set_colnames
-#' @importFrom tidyr all_of
-#' @importFrom rlang sym
-#'
+
 helper_summarize_missings <- function(data,
                           var_vec,
                           group_var = FALSE,
@@ -38,178 +33,319 @@ helper_summarize_missings <- function(data,
                           measure_style = TRUE) {
   tab1_list <- list()
   i <- 1
+  all_measure_options <- c("absolute", "relative")
+  names_data <- c("n", "relative_freq")
 
-  # Only one group
-  if (is.logical(group_var)) {
+
+  missing_summary <- function(data, var_vec) {
     # absolute frequencies
-    tab1 <- t(data %>%
-                summarise_at(var_vec, list(~ sum(is.na(
-                  .
-                )))) %>%
-                select_if(~ !all(is.na(.) | . == 0))) %>%
-      data.frame()
+    # Count missings for selected variables
+    na_counts <- sapply(data[var_vec], function(x) sum(is.na(x)))
 
-    tab1_1 <- tab1 %>%
-      set_colnames("n") %>%
-      mutate(variable = rownames(tab1))
+    # Keep only variables with at least one missing value
+    na_counts <- na_counts[!(is.na(na_counts) | na_counts == 0)]
+
+    # Create output data frame
+    tab1_1 <- data.frame(
+      n = as.numeric(na_counts),
+      variable = names(na_counts),
+      row.names = NULL
+    )
 
     # relative frequencies
-    tab2 <- t(data %>%
-                summarise_at(var_vec, list(~ round((sum(is.na(.)) / length(.) *
-                                                      100), 0))) %>%
-                select_if(~ !all(is.na(.) | . == 0))) %>%
-      data.frame()
+    rel_missing <- sapply(
+      data[var_vec],
+      function(x) round(sum(is.na(x)) / length(x) * 100, 0)
+    )
 
-    tab2_2 <- tab2 %>%
-      set_colnames("relative_freq") %>%
-      mutate(variable = rownames(tab2))
+    # Keep only variables with at least one missing value
+    rel_missing <- rel_missing[!(is.na(rel_missing) | rel_missing == 0)]
 
+    # Create output data frame
+    tab2_2 <- data.frame(
+      relative_freq = as.numeric(rel_missing),
+      variable = names(rel_missing),
+      row.names = NULL
+    )
 
-    # Problem: small absolute value of missings meaning percentage is zero
-    # this means, that I do not have this variable row in the realtive frequencies
-    tab2_2 <- merge(data.frame(variable = tab1_1[, "variable"]), tab2_2,
-                    by = "variable", all.x = TRUE, sort = FALSE)
-    tab2_2 <- tab2_2 %>%
-      relocate(variable, .after = last_col())
+    # transform 0 to < 1% in the relative freqencies
+    tab2_2$relative_freq[tab2_2$relative_freq == 0] <- "< 1"
 
-
-    # Problem: variables are not yet arranged
-    tab1_1 <- tab1_1 %>% arrange(variable)
-    tab2_2 <- tab2_2 %>% arrange(variable)
-
-    # transform the NA to < 1%
-    tab2_2 <- tab2_2 %>%
-      mutate(across(contains("relative_freq_"), ~ ifelse(is.na(.), "< 1", .)))
-
-    tab3 <- tab1_1
-    tab3$measure <- paste0(tab1_1$n, "(", tab2_2$relative_freq, ")")
-    tab3 <- tab3[, -1]
-    tab4 <-
-      Reduce(
-        function(x, y) {
-          merge(x, y, by = "variable")
-        },
-        list(tab1_1, tab2_2, tab3)
-      )
-
-    # select all the appropriate measure options
-    all_measure_options <- c("absolute", "relative")
-    names_data <- c("n", "relative_freq")
-    keep_vars <- names_data[match(measures, all_measure_options)]
-
-    res_tab <- tab4 %>%
-      relocate(variable) %>%
-      select(all_of(c("variable", keep_vars)))
-    # More than one group
-  } else {
-    # nested structure: multiple treatment arms and within these treatment arms
-    # at least two groups
-    if (!is.logical(treatment_arm)) {
-      group_var1 <- sym(group_var)
-      treatment_arm1 <- sym(treatment_arm)
-      data1 <- data %>%
-        rename(
-          group = !!group_var1,
-          treatment_arm = !!treatment_arm1
-        ) %>%
-        mutate(group = paste(treatment_arm, group, sep = " "))
-    } else {
-      # only groups, no treatment arms
-      group_var1 <- sym(group_var)
-      data1 <- data %>%
-        rename(group = !!group_var1)
-    }
-
-    # absolute frequencies
-    tab1 <- t(data1 %>%
-                group_by(group) %>%
-                summarise_at(var_vec, list(~ sum(is.na(
-                  .
-                )))) %>%
-                select_if(~ !all(is.na(.) | . == 0))) %>%
-      data.frame()
-
-
-    tab1_1 <- tab1 %>%
-      set_colnames(paste0("n_", tab1[1, ])) %>%
-      slice(-1) %>%
-      mutate(variable = rownames(tab1)[-1])
-
-
-
-
-    # relative frequencies
-    tab2 <- t(data1 %>%
-                group_by(group) %>%
-                summarise_at(var_vec, list(~ round((sum(is.na(.)) / length(.) *
-                                                      100), 0))) %>%
-                select_if(~ !all(is.na(.) | . == 0))) %>%
-      data.frame()
-
-    tab2_2 <- tab2 %>%
-      set_colnames(paste0("relative_freq_", tab2[1, ])) %>%
-      slice(-1) %>%
-      mutate(variable = rownames(tab2)[-1])
-
-
-    # Problem: small absolute value of missings meaning percentage is zero
-    tab2_2 <- merge(data.frame(variable = tab1_1[, "variable"]), tab2_2,
-                    by = "variable", all.x = TRUE, sort = FALSE)
-    tab2_2 <- tab2_2 %>%
-      relocate(variable, .after = last_col())
-    #return(tab2_2)
-
-    # Problem: variables are not yet arranged
-    tab1_1 <- tab1_1 %>% arrange(variable)
-    tab2_2 <- tab2_2 %>% arrange(variable)
-
-
-    # transform the NA to < 1%
-    tab2_2 <- tab2_2 %>%
-      mutate(across(contains("relative_freq_"), ~ ifelse(is.na(.), "< 1", .)))
-
-    tab3 <- tab1_1
-    for (i in seq_len(ncol(tab1_1) - 1)) {
-      tab3[, i] <- paste0(tab1_1[, i], "(", tab2_2[, i], ")")
-
-    }
-    colnames(tab3) <- c(paste0("measure_", tab1[1, ]), "variable")
-    tab4 <-
-      Reduce(
-        function(x, y) {
-          merge(x, y, by = "variable")
-        },
-        list(tab1_1, tab2_2, tab3)
-      )
-
-    # select all the appropriate measure options
-    all_measure_options <- c("absolute", "relative")
-    names_data <- c("n", "relative_freq")
-    keep_vars <- names_data[match(measures, all_measure_options)]
-
-    keep_var <- c()
-    for (i in seq_along(keep_vars)) {
-      keep_var <-
-        c(keep_var, paste0(keep_vars[i], "_", unique(data1$group)))
-    }
-
-    res_tab <- tab4 %>%
-      relocate(variable) %>%
-      select(all_of(c("variable", keep_var)))
+    # create a new varaible n(%)
+    tab3 <- merge(tab1_1, tab2_2, by = "variable")
+    tab3$measure <- paste0(tab3$n, "(", tab3$relative_freq, ")")
+    tab3
   }
-  res_tab <- res_tab %>%
-    rename(name = variable) %>%
-    mutate(variable = "missing") %>%
-    relocate(variable, .after = name)
 
+
+  #--------------------------------------------------------------------------------
+  # Only one group
+  #-------------------------------------------------------------------------------
+  if (is.logical(group_var) & is.logical(treatment_arm)) {
+
+    #----------------------------------------------------
+    # no  variables given or no NAs in all variables
+    #---------------------------------------------------
+    if(length(var_vec) == 0 | any(is.na(data[var_vec])) == FALSE) {
+
+      keep_vars <- names_data[match(measures, all_measure_options)]
+      row_names <- c("name", "variable", keep_vars)
+      res_tab1 <- as.data.frame(matrix(ncol = length(row_names)))
+      colnames(res_tab1) <- row_names
+      res_tab <- res_tab1[-1, ]
+
+    } else {
+
+    # calculate aboslute and relative frewuencies of missing variables
+    tab3 <- missing_summary(data = data, var_vec = var_vec)
+
+    # select all the appropriate measure options
+    all_measure_options <- c("absolute", "relative")
+    names_data <- c("n", "relative_freq")
+    names(tab3)[names(tab3) == "variable"] <- "name"
+    tab3$variable <- "missing"
+    keep_vars <- names_data[match(measures, all_measure_options)]
+
+    res_tab <- tab3[, c("name","variable", keep_vars), drop = FALSE]
+    }
+
+    #-----------------------------------------------------------------------------------
+    # More than one group
+    #-----------------------------------------------------------------------------------
+  } else {
+    if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+      names(data)[names(data) == group_var] <- "group"
+      names(data)[names(data) == treatment_arm] <- "treatment_arm"
+
+      data$group <- paste(
+        data$treatment_arm,
+        data$group,
+        sep = " "
+      )
+
+    } else if (!is.logical(treatment_arm)){
+      names(data)[names(data) == treatment_arm] <- "group"
+    } else {
+      names(data)[names(data) == group_var] <- "group"
+    }
+
+    #--------------------------------------------------------------------
+    # no variables present or no NAs in any variable: return empty data.frame
+    #------------------------------------------------------------------
+    if (length(var_vec) == 0 | any(is.na(data[var_vec])) == FALSE) {
+      keep_vars <- names_data[match(measures, all_measure_options)]
+      rwo_names1 <- expand.grid(unique(data$group), keep_vars)
+      row_names2 <-
+        sprintf("%s_%s", rwo_names1[, 2], rwo_names1[, 1])
+      row_names <- c("name", "variable", row_names2)
+      res_tab1 <- as.data.frame(matrix(ncol = length(row_names)))
+      colnames(res_tab1) <- row_names
+      res_tab <- res_tab1[-1, ]
+
+      #---------------------------------------------------------
+      #  variables present
+      #--------------------------------------------------------
+    } else {
+    # split variable by group
+    split_x <- split(
+      data,
+      data$group
+    )
+
+    # summarize within each group
+    stats <- lapply(
+      split_x,
+      missing_summary,
+      var_vec = var_vec)
+
+
+    # select only the measures needed
+    select_measure_cols <- function(df, measures) {
+      names(df)[names(df) == "variable"] <- "name"
+      df$variable <- "missing"
+
+      # select all the appropriate measure options
+      all_measure_options <- c("absolute", "relative")
+      names_data <- c("n", "relative_freq")
+      keep_vars <- names_data[match(measures, all_measure_options)]
+
+      res_tab <- df[, c("name","variable", keep_vars), drop = FALSE]
+
+    }
+
+    res_list_filtered <- lapply(
+      stats,
+      select_measure_cols,
+      measures = measures
+    )
+
+    # apply to all column names except the first one "_group1"
+    res_list <- lapply(names(res_list_filtered), function(g) {
+
+      df <- res_list_filtered[[g]]
+
+      # add suffix to all columns except first
+      names(df)[-(1:2)] <- paste0(names(df)[-(1:2)], "_", g)
+
+      df
+    })
+
+    res_tab <- Reduce(
+      function(x, y) merge(x, y, by = c("name", "variable"), all = TRUE),
+      res_list
+    )
+  }
+
+}
   if (measure_style) {
-    res_tab <- cat_unify_names(
+    res_tab <- cat_unify_names_miss(
       data = data,
       group_var = group_var,
       treatment_arm = treatment_arm,
       measures_cat = measures,
-      tab_cat_measure = res_tab
+      tab_cat_measure = res_tab,
+      cat_vec = var_vec
     )
   }
   res_tab
+}
+
+
+
+#########################################################################
+# Helper function for the Tab1 functions to unify the names and style of the tab1_categorial
+# data.frame in order to merge this with the output of the numeric variables
+# (function helper_numeric_summary). This function is called within the helper_categorical_summary function
+##########################################################################
+
+#' Helper: Unify Column Names and Style of the tab1_categorical Output
+#'
+#' @description
+#' "This function is used within the `helper_summarize_cat` function.
+#' Its main purpose is to standardize column names and combine multiple summary
+#' measures into a single column for cleaner output and easier processing in the
+#' `Table1_flex` function.
+#'
+#'
+#' inherited from the above function. See docu, how to write inheritances
+#' @inheritParams Table1_flex
+#' @param tab_cat_measure output data.frame of the function `helper_summarize_cat`
+#'
+#' @return A `data.frame` containing the summary measures specified in the input parameters.
+#'         If more than one summary measure is chosen, the summary measures are merged into
+#'         one column
+#'
+#'
+#' @noRd
+
+cat_unify_names_miss <- function(data,
+                            group_var = FALSE,
+                            treatment_arm = FALSE,
+                            measures_cat,
+                            tab_cat_measure,
+                            cat_vec = var_vec) {
+
+  all_measure_options <- c("absolute", "relative")
+  names_data <- c("n", "relative_freq")
+  keep_vars <- names_data[match(measures_cat, all_measure_options)]
+
+  #---------------------------------------------------------------------------------
+  #1. Only one group
+  #---------------------------------------------------------------------------------
+  if (is.logical(group_var) & is.logical(treatment_arm)) {
+
+    #---------------------------------------------------------------------
+    # no categorical variables given or variables doe not have missing values
+    #-------------------------------------------------------------------
+    if(length(cat_vec) == 0 | any(is.na(data[cat_vec])) == FALSE) {
+      return(data.frame(
+        name = character(),
+        variable = character(),
+        measure = character()
+      ))
+    }
+
+    #-------------------------------------
+    # 1. One measure
+    #-------------------------------------
+    if (length(measures_cat) == 1) {
+      names(tab_cat_measure)[
+        names(tab_cat_measure) == keep_vars
+      ] <- "measure"
+    } else {
+      # two measures
+      tab_cat_measure$measure <- paste0(
+        tab_cat_measure[[keep_vars[1]]],
+        " (",
+        tab_cat_measure[[keep_vars[2]]],
+        ")")
+
+      tab_cat_measure <- tab_cat_measure[ ,c("name", "variable", "measure"), drop = FALSE]
+
+    }
+  } else{
+    #------------------------------------------------------------------------------
+    # 2. At least two groups
+    #------------------------------------------------------------------------------
+    if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+      names(data)[names(data) == group_var] <- "group"
+      names(data)[names(data) == treatment_arm] <- "treatment_arm"
+
+      data$group <- paste(
+        data$treatment_arm,
+        data$group,
+        sep = " "
+      )
+
+    } else if (!is.logical(treatment_arm)){
+      names(data)[names(data) == treatment_arm] <- "group"
+    } else {
+      names(data)[names(data) == group_var] <- "group"
+    }
+
+    #-------------------------------
+    # no categorial variables given: return empty data.frame
+    #-----------------------------
+    if((length(cat_vec) == 0 | any(is.na(data[cat_vec])) == FALSE) & length(measures_cat) >= 1) {
+      add_vars <- c("name", "variable")
+      var <- paste0("measure_", unique(data$group))
+
+      tab_cat_measure <- data.frame(
+        matrix(nrow = 0, ncol = length(c(add_vars, var)))
+      )
+
+      names(tab_cat_measure) <- c(add_vars, var)
+      return(tab_cat_measure)
+    }
+    #----------------------------------------
+    # categorial variables given
+    #-------------------------------------
+    # only one measure
+    if (length(measures_cat) == 1) {
+      names_new <- colnames(tab_cat_measure)
+      colnames(tab_cat_measure) <- sub(".*_", "measure_", names_new)
+    } else {
+      # more than one measure
+      groups <- unique(data$group)
+      var <- paste0("measure_", groups)
+
+      component1 <- paste0(keep_vars[1], "_", groups)
+      component2 <- paste0(keep_vars[2], "_", groups)
+
+      for (i in seq_along(var)) {
+        tab_cat_measure[[var[i]]] <- paste0(
+          tab_cat_measure[[component1[i]]],
+          " (",
+          tab_cat_measure[[component2[i]]],
+          ")" ) }
+
+      tab_cat_measure <- tab_cat_measure[ ,c("name", "variable", var), drop = FALSE]
+    }
+  }
+  tidy_rows <- function(x) ifelse(x == "NA (NA)", NA, x)
+  var <- colnames(tab_cat_measure)
+  var <- var[!var %in% c("variable")]
+  tab_cat_measure <- tab_cat_measure %>%
+    mutate_at(var, tidy_rows)
+  tab_cat_measure
 }

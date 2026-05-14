@@ -93,7 +93,7 @@ helper_summarize_cat(data = A_arm,
                      new_line = FALSE,
                      measures_cat = c("absolute", "relative"),
                      #measures_cat = c("absolute"),
-                     measure_style = TRUE)
+                     measure_style = FALSE)
 
 
 helper_summarize_cat(data = A_arm,
@@ -102,7 +102,7 @@ helper_summarize_cat(data = A_arm,
                      treatment_arm = FALSE,
                      new_line = TRUE,
                      measures_cat = c("relative", "absolute"),
-                     measure_style = TRUE)
+                     measure_style = FALSE)
 
 
 helper_summarize_cat(data = A_arm,
@@ -160,8 +160,8 @@ helper_summarize_cat(data = A_arm,
                      group_var = "maint_started",
                      treatment_arm = FALSE,
                      new_line = FALSE,
-                     measures_cat = c("absolute"),
-                     measure_style = TRUE)
+                     measures_cat = c("relative","absolute"),
+                     measure_style = FALSE)
 
 
 

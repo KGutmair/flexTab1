@@ -40,9 +40,9 @@ helper_summarize_num(data = arm_A,
                      num_vec = num_vec1,
                                  group_var = FALSE,
                                  treatment_arm = FALSE,
-                                 new_line = TRUE,
+                                 new_line = FALSE,
                                  measures_num = c("min", "median", "max"),
-                                 measure_style = TRUE)
+                                 measure_style = FALSE)
 
 
 helper_summarize_num(data = arm_A,
@@ -83,7 +83,7 @@ helper_summarize_num(data = arm_A,
                      treatment_arm = FALSE,
                      new_line = FALSE,
                      measures_num = c("min", "max"),
-                     measure_style = TRUE)
+                     measure_style = FALSE)
 
 #----------------------------------------------------------------------
 # 2. Two or more groups
@@ -96,7 +96,7 @@ helper_summarize_num(data = arm_A,
                      treatment_arm = FALSE,
                      new_line = FALSE,
                      measures_num = c("median","max", "min"),
-                     measure_style = TRUE)
+                     measure_style = FALSE)
 
 
 

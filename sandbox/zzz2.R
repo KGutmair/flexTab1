@@ -5,9 +5,8 @@
 main_path <- "/nfsmb/koll/katja.gutmair/MULTIPLY/rituximab_maintenance/repository"
 at <- readRDS(file = paste0(main_path,  "/02_data/created_data/triangle_at.rds"))
 A_arm <- at[at$rnd == "A", ]
-categorial_variables <- c("ecog", "p53", "cyt")
+categorial_variables <- c("ecog", "p53", "cyt", "mipi")
 num_vec1 <- c("ki67", "wbc")
-
 
 
 #----------------------------------------------
@@ -94,30 +93,34 @@ helper_summarize_missings(data = A_arm,
                           group_var = FALSE,
                           treatment_arm = FALSE,
                           measures = c("absolute", "relative"),
-                          measure_style = FALSE)
+                          measure_style = TRUE)
 
 helper_summarize_missings(data = A_arm,
                           var_vec = c(categorial_variables, num_vec1),
                           group_var = FALSE,
                           treatment_arm = FALSE,
-                          measures = c("relative"),
+                          measures = c("relative", "absolute"),
                           measure_style = TRUE)
+
+
 
 helper_summarize_missings(data = A_arm,
                           var_vec = c(),
                           group_var = FALSE,
                           treatment_arm = FALSE,
-                          measures = c("relative"),
-                          measure_style = FALSE)
-# error
+                          measures = c("relative", "absolute"),
+                          measure_style = TRUE)
+# Check: if measure = relative, than the structure should not be measure but rel_freq
+# How is this handeled in the categorial function?
+
+
 
 helper_summarize_missings(data = A_arm,
                           var_vec = c("ecog", "wbc"),
                           group_var = FALSE,
                           treatment_arm = FALSE,
-                          measures = c("relative"),
+                          measures = c("relative", "absolute"),
                           measure_style = TRUE)
-# error
 
 
 # One variable category is completely missing
@@ -141,28 +144,44 @@ helper_summarize_missings(data = A_arm5,
 #----------------------------------------------------------------------------------
 # Two groups
 #----------------------------------------------------------------------------------
+
+
 helper_summarize_missings(data = A_arm,
                           var_vec = c(categorial_variables, num_vec1),
                           group_var = "maint_started",
                           treatment_arm = FALSE,
-                          measures = c("absolute", "relative"),
+                          measures = c("relative", "absolute"),
                           measure_style = TRUE)
 
+
+
+
+
+# I have to solve this here als well as the empty string with only one group
 helper_summarize_missings(data = A_arm,
                           var_vec = c(),
                           group_var = "maint_started",
                           treatment_arm = FALSE,
                           measures = c("absolute", "relative"),
                           measure_style = TRUE)
-# error
+
 
 helper_summarize_missings(data = A_arm,
                           var_vec = c("wbc", "ldh"),
                           group_var = "maint_started",
                           treatment_arm = FALSE,
-                          measures = c("absolute", "relative"),
-                          measure_style = FALSE)
-# error
+                          measures = c("relative", "absolute"),
+                          measure_style = TRUE)
+
+
+
+
+
+
+
+
+
+
 
 # 1. One category is not present in one group
 helper_summarize_missings(data = A_arm1,
@@ -170,7 +189,7 @@ helper_summarize_missings(data = A_arm1,
                           group_var = "maint_started",
                           treatment_arm = FALSE,
                           measures = c("absolute", "relative"),
-                          measure_style = TRUE)
+                          measure_style = FALSE)
 
 # 2. One category is completely missing in one groups
 helper_summarize_missings(data = A_arm2,
@@ -198,7 +217,7 @@ helper_summarize_missings(data = at,
                           group_var = "rnd",
                           treatment_arm = FALSE,
                           measures = c("absolute", "relative"),
-                          measure_style = TRUE)
+                          measure_style = FALSE)
 
 helper_summarize_missings(data = at,
                           var_vec = c(),
@@ -206,15 +225,14 @@ helper_summarize_missings(data = at,
                           treatment_arm = FALSE,
                           measures = c("absolute", "relative"),
                           measure_style = TRUE)
-# error
 
 helper_summarize_missings(data = at,
                           var_vec = c("wbc", "ldh"),
                           group_var = "rnd",
                           treatment_arm = FALSE,
                           measures = c("absolute", "relative"),
-                          measure_style = FALSE)
-# error
+                          measure_style = TRUE)
+
 
 # 1. One category is not present in one group
 helper_summarize_missings(data = at1,
@@ -251,7 +269,7 @@ helper_summarize_missings(data = at,
                           group_var = "maint_started",
                           treatment_arm = "rnd",
                           measures = c("absolute", "relative"),
-                          measure_style = TRUE)
+                          measure_style = FALSE)
 
 helper_summarize_missings(data = at,
                           var_vec = c(categorial_variables, num_vec1),
@@ -259,4 +277,45 @@ helper_summarize_missings(data = at,
                           treatment_arm = "maint_started",
                           measures = c("absolute", "relative"),
                           measure_style = TRUE)
+
+
+helper_summarize_missings(data = at,
+                          var_vec = c(),
+                          group_var = "maint_started",
+                          treatment_arm = "rnd",
+                          measures = c("absolute", "relative"),
+                          measure_style = TRUE)
+
+
+helper_summarize_missings(data = at,
+                          var_vec = c("wbc", "score"),
+                          group_var = "maint_started",
+                          treatment_arm = "rnd",
+                          measures = c("absolute", "relative"),
+                          measure_style = TRUE)
+
+
+#-------------------------------------------------------------------------------
+# Only treatment arm
+#----------------------------------------------------------------------------
+
+helper_summarize_missings(data = at,
+                          var_vec = c(categorial_variables, num_vec1),
+                          treatment_arm = "rnd",
+                          measures = c("absolute", "relative"),
+                          measure_style = FALSE)
+
+
+helper_summarize_missings(data = at,
+                          var_vec = c(),
+                          treatment_arm = "rnd",
+                          measures = c("absolute", "relative"),
+                          measure_style = TRUE)
+
+
+helper_summarize_missings(data = at,
+                          var_vec = c("wbc", "score"),
+                          treatment_arm = "rnd",
+                          measures = c("absolute", "relative"),
+                          measure_style = FALSE)
 
