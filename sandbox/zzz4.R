@@ -130,19 +130,12 @@ helper_smd(data = at,
            group_var = "maint_started",
            treatment_arm = "rnd")
 
-# numeric variable: one variable is entierly missing
-at1 <- at
-at1$ki67 <- NA
 
-helper_smd(data = at1,
-           variables = all_vars,
-           group_var = "maint_started",
-           treatment_arm = "rnd")
-# error
+
 
 # numeric variable: one variable is entierly missing in one group
 at2 <- at
-at2$ki67[at2$maint_started == "1" & rnd == "A+I"] <- NA
+at2$ki67[at2$maint_started == "1" & at2$rnd == "A+I"] <- NA
 
 helper_smd(data = at2,
            variables = all_vars,

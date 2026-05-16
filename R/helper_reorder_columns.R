@@ -6,17 +6,18 @@
 #'
 #' @return a character vector with the colnames of the Tab1, in the desired order
 #'  @importFrom stringr str_extract str_starts fixed
-#'  @importFrom dplyr select
-#'  @importFrom magrittr .
 #' @noRd
 #'
+#'
+
 sort_columns <- function(data, treatment_order = NULL, group_order = NULL) {
   col_names <- colnames(data)
 
-  # when there is a group order indicated
-  if (!is.null(group_order)) {
-    # when there is also a treatment order indicated
-    if (!is.null(treatment_order)) {
+  #--------------------------------------------------
+  # 1.  group order and treatment order indicated
+  #---------------------------------------------------
+  if (!is.null(group_order) & !is.null(treatment_order)) {
+
       # Identify p-value columns and SMD columns
       pvalue_cols <- col_names[grepl("_p-value$", col_names)]
       smd_cols <- col_names[grepl("_SMD$", col_names)]
@@ -24,11 +25,11 @@ sort_columns <- function(data, treatment_order = NULL, group_order = NULL) {
                                !grepl("name", col_names) & !grepl("variable", col_names)]
 
 
-      # Insert p-values immediately after their corresponding treatment groups
+      # Insert p-values immediately after their corresponding  groups
       sorted_cols <- c()
       sorted_cols1 <- c()
       for (treat in treatment_order) {
-        # Get all columns for this treatment
+        # Get all columns for this one treatment group
         relevant_cols <- main_cols[stringr::str_starts(main_cols, stringr::fixed(paste0(treat, " ")))]
 
 
@@ -45,15 +46,26 @@ sort_columns <- function(data, treatment_order = NULL, group_order = NULL) {
         sorted_cols <- c(sorted_cols, sorted_cols1, pvalue_col, smd_col)
 
       }
+      data <- data[, c("name", "variable", sorted_cols)]
+
       # when there is only a group order indicated
-    } else {
+    } else  if (!is.null(group_order) | !is.null(treatment_order))  {
+
+      # Define the grouping order vector
+      grouping_order <- if (!is.null(group_order)) {
+        group_order
+      } else {
+        treatment_order
+      }
+
       pvalue_cols <- col_names[grepl("_p-value$", col_names)]
       smd_cols <- col_names[grepl("_SMD$", col_names)]
       main_cols <- col_names[!grepl("_p-value$", col_names) & !grepl("_SMD$", col_names)]
 
       # Insert p-values immediately after their corresponding treatment groups
       sorted_cols <- c()
-      for (treat in group_order) {
+
+      for (treat in grouping_order) {
         # Get all columns for this treatment
         relevant_cols <- main_cols[stringr::str_extract(main_cols, "^[^\n]+") == treat]
         # If a corresponding p-value exists, insert it after the group columns
@@ -62,15 +74,16 @@ sort_columns <- function(data, treatment_order = NULL, group_order = NULL) {
         smd_col <- smd_cols[stringr::str_starts(smd_cols, stringr::fixed(paste0(treat, "_SMD")))]
         sorted_cols <- c(sorted_cols, relevant_cols, pvalue_col, smd_col)
       }
-    }
-    data <- data %>%
-      select(name, variable, sorted_cols)
 
-
+      data <- data %>%
+        select(name, variable, sorted_cols)
     # when there is neither a treatment order nor a group order indicated
   } else {
-    data <- data %>%
-      select(name, variable, sort(setdiff(names(.), c("name", "variable"))))
+    data <- data[, c(
+      "name",
+      "variable",
+      sort(setdiff(names(data), c("name", "variable")))
+    )]
   }
   return(data)
 }

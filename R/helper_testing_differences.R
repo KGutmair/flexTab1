@@ -411,6 +411,77 @@ helper_smd <- function(data,
                        group_var = FALSE,
                        treatment_arm = FALSE) {
 
+
+  #-------------------------------------------------------------------------------
+  # Function for calculating the SMD for a vector of variable
+  #------------------------------------------------------------------------------
+
+  compute_smd <- function(data, variables, group_var = "group") {
+
+    # Identify invalid variables
+    invalid_vars <- variables[
+      sapply(variables, function(v) {
+
+        any(
+          tapply(
+            data[[v]],
+            data[[group_var]],
+            function(x) all(is.na(x))
+          )
+        )
+      })
+    ]
+
+    # Variables usable for SMD
+    valid_vars <- setdiff(variables, invalid_vars)
+
+    # Compute SMD
+    if (length(valid_vars) > 0) {
+
+      smd_data <- data[, c(valid_vars, group_var)]
+
+      md <- smd(
+        x = smd_data,
+        g = smd_data[[group_var]],
+        na.rm = TRUE,
+        std.error = TRUE
+      )
+
+      md <- md[, c("variable", "estimate")]
+      names(md)[names(md) == "estimate"] <- "SMD"
+
+      md$SMD <- round(md$SMD, 3)
+
+    } else {
+
+      md <- data.frame(
+        variable = character(0),
+        SMD = numeric(0)
+      )
+    }
+
+    # Add invalid variables
+    if (length(invalid_vars) > 0) {
+
+      md_na <- data.frame(
+        variable = invalid_vars,
+        SMD = NA
+      )
+
+      md <- rbind(md, md_na)
+    }
+
+    # Restore original order
+    md <- md[match(variables, md$variable), ]
+
+    rownames(md) <- NULL
+
+    md
+  }
+
+  #--------------------------------------------------------
+  # Setting group names
+  #------------------------------------------------------------
   if (!is.logical(treatment_arm) & !is.logical(group_var)) {
 
     data1 <- data
@@ -452,48 +523,11 @@ helper_smd <- function(data,
         # b, categorical variables available
         #--------------------------------------------------
       } else {
-        # Identify problematic variables
-        invalid_vars <- variables[
-          sapply(variables, function(v) {
-
-            # Check within each group
-            any(tapply(data1[[v]],data1$group,
-                       function(x) all(is.na(x))
-            ))})]
-
-        # Variables valid for SMD computation
-        valid_vars <- setdiff(variables, invalid_vars)
-
-        # Data for SMD computation
-        data2 <- data1[, c(valid_vars, "group")]
-
-        # Compute SMD
-        md <- smd(
-          x = data2,
-          g = data2$group,
-          na.rm = TRUE,
-          std.error = TRUE
+        md <- compute_smd(
+          data = data1,
+          variables = variables,
+          group_var = "group"
         )
-
-        md <- md[, c("variable", "estimate")]
-        names(md)[names(md) == "estimate"] <- "SMD"
-        md$SMD <- round(md$SMD, 3)
-
-        # Add invalid variables with NA
-        if (length(invalid_vars) > 0) {
-
-          md_na <- data.frame(
-            variable = invalid_vars,
-            SMD = NA
-          )
-
-          md <- rbind(md, md_na)
-        }
-
-        # Restore original order
-        md <- md[match(variables, md$variable), ]
-
-
       }
       #----------------------------------------------------------------
       # 2. Comparison of more than two groups without nesting
@@ -526,32 +560,28 @@ helper_smd <- function(data,
         #--------------------------------------------
 
     } else {
-      arms_list <- list()
       arms <- unique(data1$treat_arm)
+      arms_list <- lapply(arms, function(a) {
 
-      for (k in seq_along(arms)) {
-        p_list <- list()
-        i <- 1
+        data_arm <- data1[data1$treat_arm == a, ]
 
-        data2 <- data1 %>%
-          filter(treat_arm == arms[k]) %>%
-          select(all_of(c(variables, "group")))
-
-        md_res <- smd(
-          x = data2,
-          g = data2$group,
-          na.rm = TRUE,
-          std.error = TRUE
+        md_res <- compute_smd(
+          data = data_arm,
+          variables = variables,
+          group_var = "group"
         )
 
-        md_res <- md_res[c("variable", "estimate")]
-        names(md_res)[names(md_res) == "estimate"] <- "SMD"
-        md_res$SMD <- round(md_res$SMD, 3)
-        names(md_res)[names(md_res) == "SMD"] <- paste0(arms[k], "_SMD")
+        names(md_res)[names(md_res) == "SMD"] <-
+          paste0(a, "_SMD")
 
-        arms_list[[k]] <- md_res
-      }
-      md <- Reduce(function(x, y) merge(x, y, by = "variable"), arms_list)
+        md_res
+      })
+
+      md <- Reduce(
+        function(x, y) merge(x, y, by = "variable", all = TRUE),
+        arms_list
+      )
+
     }
     }
     md
