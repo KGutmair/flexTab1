@@ -213,99 +213,169 @@ helper_testing_num <- function(data,
 #' @return A data frame with variable names and corresponding p-values from the Fisher´s exact test,
 #'         indicating whether the distributions of the variables differ between two groups.
 #'
-#' @importFrom dplyr rename filter mutate %>%
-#' @importFrom janitor tabyl fisher.test
-#' @importFrom rlang sym
 #' @noRd
 
 helper_testing_cat <- function(data,
                                cat_vec,
-                               group_var,
+                               group_var = FALSE,
                                treatment_arm = FALSE) {
 
-  if (is.logical(treatment_arm)) {
-    group_var1 <- sym(group_var)
-    data1 <- data %>%
-      rename(group = !!group_var1)
+  #-----------------------------------------------------------------------
+  # Function for computing fishers exact test or wilcoxon test depending on
+  # the expected count. Saved in a vector with the variable name and the p-value
+  #----------------------------------------------------------------------
+
+  compute_cat_p <- function(data, var, group_var) {
+
+    data_sub <- data[!is.na(data[[var]]) & !is.na(data[[group_var]]), ]
+    tab <- table(data_sub[[group_var]], data_sub[[var]])
+
+    # Remove empty rows/columns
+    tab <- tab[rowSums(tab) > 0, colSums(tab) > 0, drop = FALSE]
+
+    # Need at least 2 rows and 2 columns
+    if (nrow(tab) < 2 || ncol(tab) < 2) {
+      return(c(var, NA))
+    }
+
+    p_val <- tryCatch({
+      chi_test <- chisq.test(tab)
+
+      if (any(chi_test$expected < 5)) {
+        fisher.test(tab)
+      } else {
+        chi_test
+      }
+    }, error = function(e) NULL)
+
+    p_out <- if (is.null(p_val)) {
+      NA
+    } else if (p_val$p.value >= 0.1) {
+      round(p_val$p.value, 2)
+    } else {
+      round(p_val$p.value, 3)
+    }
+    c(var, p_out)
+  }
+
+  if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+
+    data1 <- data
+    data1$group <- data[[group_var]]
+    data1$treat_arm <- data[[treatment_arm]]
+
+    number_arms <- length(unique(data1$treat_arm))
+    number_groups <- length(unique(data1$group))
+
+
+  } else if (!is.logical(group_var)) {
+    # only grouping variable
+    data1 <- data
+    data1$group <- data[[group_var]]
     number_arms <- 1
     number_groups <- length(unique(data1$group))
   } else {
-    group_var1 <- sym(group_var)
-    arm_var1 <- sym(treatment_arm)
-
-    data1 <- data %>%
-      rename(
-        group = !!group_var1,
-        treat_arm = !!arm_var1
-      )
-    number_arms <- length(unique(data1$treat_arm))
+    data1 <- data
+    data1$group <- data[[treatment_arm]]
+    number_arms <- 1
     number_groups <- length(unique(data1$group))
   }
 
-  # Comparison of two groups (only group_var, no treatment arms)
-  if (number_groups == 2 & is.logical(treatment_arm)) {
+
+  #-------------------------------------------------------------------------------------
+  # 1. Comparisons of two groups without nesting (those two groups can be placed in the group
+  # as well as in the arm argument)
+  #------------------------------------------------------------------------------------
+  if (number_groups == 2 & number_arms == 1) {
+    #----------------------------------------------------------
+    # a, no cateogorial variables
+    #---------------------------------------------------------
     if (length(cat_vec) == 0) {
       col_names <- c("name", "p-value")
       all_p <- as.data.frame(matrix(ncol = length(col_names)))
       colnames(all_p) <- col_names
       all_p <- all_p[-1, ]
+    #------------------------------------------------------
+      # categorial variables available
+      #--------------------------------------------------
     } else {
-      p_list <- list()
-      i <- 1
-      for (param in (cat_vec)) {
-        param1 <- sym(param)
-        p_val <- data1 %>%
-          filter(!is.na(!!param1)) %>%
-          tabyl(group, !!param1) %>%
-          janitor::fisher.test()
-        p_list[[i]] <- c(param, ifelse(p_val$p.value >= 0.1, round(p_val$p.value, 2),
-                                       round(p_val$p.value, 3)
-        ))
-        i <- i + 1
-      }
+      p_list <- lapply(
+        cat_vec,
+        compute_cat_p,
+        data = data1,
+        group_var = "group"
+      )
+
       res_tab <- (do.call("rbind", p_list))
       res_tab <- as.data.frame(res_tab)
       colnames(res_tab) <- c("name", "p-value")
-      all_p <- res_tab %>%
-        mutate(`p-value` = ifelse(`p-value` < 0.001, "< 0.001", `p-value`))
+      all_p <- res_tab
+
+      all_p$`p-value` <- ifelse(
+        all_p$`p-value` < 0.001,
+        "< 0.001",
+        all_p$`p-value`
+      )
+
     }
-  } else if (number_groups > 2 & is.logical(treatment_arm)) {
-    print("this method is not implemented yet")
+    #---------------------------------------------------------
+    #2. Comparisons of more than two groups without nesting
+    #--------------------------------------------------------
+  } else if ((number_groups > 2 & number_arms == 1)) {
+    return("this method is not implemented yet")
   } else {
-    # meaning if there are more than one treatment arm
-    # what is not covered: group var >2 wihin a treatment arm
-    if (length(cat_vec) == 0) {
+
+    #--------------------------------------------------------
+    # 3. Comparison of more than one arm, so nested structure
+    #----------------------------------------------------------
+
+    #---------------------------------------------
+    # a0: if number of groups > 2: p-value calculation not implemented yet
+    #--------------------------------------------
+
+    if (number_groups > 2) {
+      return("this method is not implemented yet")
+    }
+
+    #---------------------------------------------
+    # a, no numeric variables there
+    #---------------------------------------------
+    else if (length(cat_vec) == 0) {
       col_names <- c("name", paste(unique(data1$treat_arm), "p-value", sep = "_"))
       all_p <- as.data.frame(matrix(ncol = length(col_names)))
       colnames(all_p) <- col_names
       all_p <- all_p[-1, ]
+
+    #--------------------------------------------
+      # numeric variables, compare between groups within treatment arms
+    #--------------------------------------------
     } else {
       arms_list <- list()
       arms <- unique(data1$treat_arm)
+
+      # loop over every treatment arm
       for (k in seq_along(arms)) {
         p_list <- list()
         i <- 1
 
-        data2 <- data1 %>%
-          filter(treat_arm == arms[k])
+        data2 <- data1[data1$treat_arm == arms[k], ]
 
-        for (param in (cat_vec)) {
-          param1 <- sym(param)
-          p_val <- data2 %>%
-            filter(!is.na(!!param1)) %>%
-            tabyl(group, !!param1) %>%
-            janitor::fisher.test()
+        # calculate within every treatment arm
+        p_list <- lapply(
+          cat_vec,
+          compute_cat_p,
+          data = data2,
+          group_var = "group"
+        )
 
-          p_list[[i]] <- c(param, ifelse(p_val$p.value >= 0.1, round(p_val$p.value, 2),
-                                         round(p_val$p.value, 3)
-          ))
-          i <- i + 1
-        }
         res_tab <- (do.call("rbind", p_list))
         res_tab <- as.data.frame(res_tab)
         colnames(res_tab) <- c("name", "p-value")
-        res_tab <- res_tab %>%
-          mutate(`p-value` = ifelse(`p-value` < 0.001, "< 0.001", `p-value`))
+        res_tab$`p-value` <- ifelse(
+          res_tab$`p-value` < 0.001,
+          "< 0.001",
+          res_tab$`p-value`
+        )
         names(res_tab)[names(res_tab) == "p-value"] <- paste0(arms[k], "_p-value")
         arms_list[[k]] <- res_tab
       }
@@ -333,55 +403,128 @@ helper_testing_cat <- function(data,
 #'
 #' @inheritParams Table1_flex
 #' @return A data frame with variable names and standardized mean differences.
-#' @importFrom dplyr rename select mutate filter %>%
-#' @importFrom tidyr all_of
 #' @importFrom smd smd
-#' @importFrom rlang sym
 #' @noRd
 
-helper_smd <-
-  function(data,
-           variables,
-           group_var,
-           treatment_arm = FALSE) {
+helper_smd <- function(data,
+                       variables,
+                       group_var = FALSE,
+                       treatment_arm = FALSE) {
 
-    if (is.logical(treatment_arm)) {
-      # No group
-      group_var1 <- sym(group_var)
-      data1 <- data %>%
-        rename(group = !!group_var1)
-      number_arms <- 1
-      number_groups <- length(unique(data1$group))
-    } else {
-      # More than one group
-      group_var1 <- sym(group_var)
-      arm_var1 <- sym(treatment_arm)
+  if (!is.logical(treatment_arm) & !is.logical(group_var)) {
 
-      data1 <- data %>%
-        rename(
-          group = !!group_var1,
-          treat_arm = !!arm_var1
-        )
-      number_arms <- length(unique(data1$treat_arm))
-      number_groups <- length(unique(data1$group))
-    }
+    data1 <- data
+    data1$group <- data[[group_var]]
+    data1$treat_arm <- data[[treatment_arm]]
+
+    number_arms <- length(unique(data1$treat_arm))
+    number_groups <- length(unique(data1$group))
+
+
+  } else if (!is.logical(group_var)) {
+    # only grouping variable
+    data1 <- data
+    data1$group <- data[[group_var]]
+    number_arms <- 1
+    number_groups <- length(unique(data1$group))
+  } else {
+    data1 <- data
+    data1$group <- data[[treatment_arm]]
+    number_arms <- 1
+    number_groups <- length(unique(data1$group))
+  }
+
+  #-------------------------------------------------------------------------------------
+  # 1. Comparisons of two groups without nesting (those two groups can be placed in the group
+  # as well as in the arm argument)
+  #------------------------------------------------------------------------------------
 
     if (number_groups == 2 & number_arms == 1) {
-      data2 <- data1 %>%
-        select(all_of(c(variables, "group")))
-      md <- smd(
-        x = data2,
-        g = data2$group,
-        na.rm = TRUE,
-        std.error = TRUE
-      )
+      #----------------------------------------------------------
+      # a, no  variables
+      #---------------------------------------------------------
+      if (length(variables) == 0) {
+        col_names <- c("name", "SMD")
+        all_smd <- as.data.frame(matrix(ncol = length(col_names)))
+        colnames(all_smd) <- col_names
+        md <- all_smd[-1, ]
+        #------------------------------------------------------
+        # b, categorical variables available
+        #--------------------------------------------------
+      } else {
+        # Identify problematic variables
+        invalid_vars <- variables[
+          sapply(variables, function(v) {
 
-      md <- md %>%
-        select(variable, estimate) %>%
-        rename(SMD = estimate) %>%
-        mutate(SMD = round(SMD, 3))
+            # Check within each group
+            any(tapply(data1[[v]],data1$group,
+                       function(x) all(is.na(x))
+            ))})]
+
+        # Variables valid for SMD computation
+        valid_vars <- setdiff(variables, invalid_vars)
+
+        # Data for SMD computation
+        data2 <- data1[, c(valid_vars, "group")]
+
+        # Compute SMD
+        md <- smd(
+          x = data2,
+          g = data2$group,
+          na.rm = TRUE,
+          std.error = TRUE
+        )
+
+        md <- md[, c("variable", "estimate")]
+        names(md)[names(md) == "estimate"] <- "SMD"
+        md$SMD <- round(md$SMD, 3)
+
+        # Add invalid variables with NA
+        if (length(invalid_vars) > 0) {
+
+          md_na <- data.frame(
+            variable = invalid_vars,
+            SMD = NA
+          )
+
+          md <- rbind(md, md_na)
+        }
+
+        # Restore original order
+        md <- md[match(variables, md$variable), ]
+
+
+      }
+      #----------------------------------------------------------------
+      # 2. Comparison of more than two groups without nesting
+      #---------------------------------------------------------------
     } else if (number_groups > 2 & number_arms == 1) {
-      print("this method is not implemented yet")
+      return("this method is not implemented yet")
+    } else {
+      #--------------------------------------------------------
+      # 3. Comparison of more than one arm, so nested structure
+      #----------------------------------------------------------
+
+      #---------------------------------------------
+      # a0: if number of groups > 2: p-value calculation not implemented yet
+      #--------------------------------------------
+
+      if (number_groups > 2) {
+        return("this method is not implemented yet")
+      }
+      #---------------------------------------------
+      # a, no variables there
+      #---------------------------------------------
+      else if (length(variables) == 0) {
+        col_names <- c("name", paste(unique(data1$treat_arm), "SMD", sep = "_"))
+        all_smd <- as.data.frame(matrix(ncol = length(col_names)))
+        colnames(all_smd) <- col_names
+        md <- all_smd[-1, ]
+
+        #--------------------------------------------
+        # b, variables, compare between groups within treatment arms
+        #--------------------------------------------
+
     } else {
       arms_list <- list()
       arms <- unique(data1$treat_arm)
@@ -401,18 +544,15 @@ helper_smd <-
           std.error = TRUE
         )
 
-        md_res <- md_res %>%
-          select(variable, estimate) %>%
-          rename(SMD = estimate) %>%
-          mutate(SMD = round(SMD, 3))
+        md_res <- md_res[c("variable", "estimate")]
+        names(md_res)[names(md_res) == "estimate"] <- "SMD"
+        md_res$SMD <- round(md_res$SMD, 3)
         names(md_res)[names(md_res) == "SMD"] <- paste0(arms[k], "_SMD")
 
         arms_list[[k]] <- md_res
       }
       md <- Reduce(function(x, y) merge(x, y, by = "variable"), arms_list)
     }
-    if (length(variables) == 0) {
-      md <- md[-1, ]
     }
     md
   }
