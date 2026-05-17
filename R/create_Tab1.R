@@ -127,7 +127,7 @@
 #'   flextable::autofit(tab1_ex)
 #' }
 
-#'
+
 Table1_flex <- function(data,
                         variables,
                         group_var = FALSE,
@@ -147,16 +147,34 @@ Table1_flex <- function(data,
   # Testing input parameters
   ###############################
 
+  #------------------------------
+  # data: only allow a data.frame
+  #------------------------------
   assert_data_frame(data, min.rows = 1, min.cols = 1)
-  assert_vector(variables, any.missing = FALSE, min.len = 1)
 
-  if (any(!variables %in% colnames(data))) {
-    stop(paste0(
-      "At least any of the variable names ", variables, " cannot be found in the data"
-    ))
+  #-------------------------------
+  # variables
+  #-------------------------------
+  missing_vars <- variables[!variables %in% colnames(data)]
+  assert_character(variables,any.missing = FALSE, null.ok = TRUE)
+
+  if (length(missing_vars) > 0) {
+    warning(
+      paste0(
+        "The following variable(s) cannot be found in the data and will be ignored: ",
+        paste(missing_vars, collapse = ", ")
+      )
+    )
+    variables <- variables[!variables %in% missing_vars]
   }
 
-  assert_vector(group_var, any.missing = FALSE, len = 1)
+
+  #-----------------------
+  # group_var
+  #----------------------
+  assert(isFALSE(group_var) || (is.character(group_var) && length(group_var) == 1),
+    msg = "Input of 'group_var' must be either FALSE or a single character value (column name of data)."
+  )
 
   if (group_var != FALSE) {
     if (any(!group_var %in% colnames(data))) {
@@ -165,39 +183,53 @@ Table1_flex <- function(data,
     if (length(unique(data[[group_var]])) <= 1) {
       stop("The grouping var has less then 2 categories")
     }
-    if (is.numeric(data[, group_var])) {
-      stop("The group_var variable must not be numeric")
-    }
-  }
-  if (!is.logical(treatment_arm) & is.logical(group_var)) {
-    stop(
-      "No grouping variable was provided. Did you confound grouping
-                    variable with treatment arm? Refere to the documentation for
-                    the difference between treatment_arm and group_var"
+    # alowed data type of group_var
+    assert(
+      is.logical(data[[group_var]]) ||
+        is.factor(data[[group_var]]) ||
+        is.character(data[[group_var]]),
+      msg = "'group_var' must refer to a logical or factor/character variable in data."
     )
   }
-  if (!is.null(sort_rows) & all(sort_rows %in% variables) == FALSE) {
-    stop("The variable names provided in the `sort_row` argument are not included in the `variables` argument")
-  }
 
-  if (!is.null(treatment_order) & !is.logical(treatment_arm)) {
-    if (any(!treatment_order %in% unique(data[[treatment_arm]]))) {
-      stop("At least one element in treatment_order is not part of the treatment arm")
+
+
+
+  #---------------------
+  # treatment_arm
+  #---------------------
+  assert(isFALSE(treatment_arm) || (is.character(treatment_arm) && length(treatment_arm) == 1),
+         msg = "Input of 'treatment_arm' must be either FALSE or a single character value (column name of data)."
+  )
+
+  if (treatment_arm != FALSE) {
+    if (any(!treatment_arm %in% colnames(data))) {
+      stop(paste0("Treatment_arm variable ", treatment_arm, " is not in data frame"))
     }
-  }
-
-  if (!is.null(group_order) & !is.logical(group_var)) {
-    if (any(!group_order %in% unique(data[[group_var]]))) {
-      stop("At least one element in group_order is not part of the group_var")
+    if (length(unique(data[[treatment_arm]])) <= 1) {
+      stop("The treatment_variable has less then 2 categories")
     }
+    assert(
+      is.logical(treatment_arm) ||
+        is.factor(data[[treatment_arm]]) ||
+        is.character(data[[treatment_arm]]),
+      msg = "'treatment_arm'  must refer to a logical or factor/character variable in data."
+    )
+
   }
 
-  if (!is.logical(treatment_arm) & !is.logical(group_var)) {
-    if (xor(!is.null(treatment_order), !is.null(group_order))) {
-      stop("There is a nested grouping variable (group_var, treatment_arm), but ordering is only definied for one of these two grouping variables")
-    }
+#------------------
+  # new_line
+#------------------
+  #assertLogical(new_line, any.missing = FALSE, len = 1)
+  if (!is.logical(new_line) || length(new_line) != 1 || is.na(new_line)) {
+    warning("`new_line` is invalid. Setting to FALSE.")
+    new_line <- FALSE
   }
 
+#-----------------
+# measure_cat
+#--------------
   assert_character(
     measures_cat,
     any.missing = FALSE,
@@ -206,6 +238,10 @@ Table1_flex <- function(data,
   )
   assertSubset(measures_cat, choices = c("absolute", "relative"))
 
+
+  #----------------
+  # measures_num
+  #---------------
   assert_character(
     measures_num,
     any.missing = FALSE,
@@ -219,41 +255,208 @@ Table1_flex <- function(data,
       "quantile1", "quantile3"
     )
   )
-  assertLogical(new_line, any.missing = FALSE, len = 1)
+
+  #----------------------------
+  # display_pvalue and SMD
+  #----------------------------
   assertLogical(display_pvalue, any.missing = FALSE, len = 1)
   assertLogical(display_smd, any.missing = FALSE, len = 1)
-  assertLogical(display_missings, any.missing = FALSE, len = 1)
-  assertLogical(flextable_output, any.missing = FALSE, len = 1)
-  assertLogical(add_measure_ident, any.missing = FALSE, len = 1)
 
-  if (is.logical(group_var) &
-    (display_pvalue == TRUE | display_smd == TRUE)) {
+  if ((is.logical(group_var) & is.logical(treatment_arm)) &
+      (display_pvalue == TRUE | display_smd == TRUE)) {
     warning("Calculation of p-values and SMDs need at least two groups. Only one group provided, setting display_pvalues and display_smd to FALSE")
     display_pvalue <- FALSE
     display_smd <- FALSE
   }
 
-  if (!is.logical(group_var) && (length(unique(data[, group_var])) > 2 &
-    (display_pvalue == TRUE | display_smd == TRUE))) {
-    warning("This is an experimental version. The method for comparing more than two groups is not implemented yet.")
+  if ((!is.logical(group_var) && (length(unique(data[, group_var])) > 2)) |
+      (!is.logical(treatment_arm & is.logical(group_var)) && (length(unique(data[, treatment_arm])) > 2)) &
+      (display_pvalue == TRUE | display_smd == TRUE)) {
+    warning("The method for comparing more than two groups is not implemented yet.")
     display_pvalue <- FALSE
     display_smd <- FALSE
   }
 
-  options(dplyr.summarise.inform = FALSE)
 
-  #########################################################
-  # Step 1: Check, if and which variables are numeric
-  #########################################################
+  #---------------
+  # display_missings
+  #---------------
+  #assertLogical(display_missings, any.missing = FALSE, len = 1)
+  ok <- checkmate::testLogical(display_missings, any.missing = FALSE, len = 1)
+
+  if (!ok) {
+    warning("`display_missings` is invalid. Setting to TRUE.")
+    display_missings <- TRUE
+  }
+
+  #---------------
+  # flextable_output
+  #---------------
+  #assertLogical(flextable_output, any.missing = FALSE, len = 1)
+  ok <- testLogical(flextable_output, any.missing = FALSE, len = 1)
+
+
+  if (!ok) {
+    warning("'flextable_output' is invalid. Setting to TRUE.")
+    flextable_output <- TRUE
+  }
+
+  #-----------------
+  # sort_rows
+  #----------------
+  # assert(
+  #   is.null(sort_rows) ||
+  #     (is.character(sort_rows) && !any(is.na(sort_rows))),
+  #   msg = "'sort_rows' must be either NULL or a character vector without missing values."
+  # )
+
+  if (!is.null(sort_rows) &&
+      (!is.character(sort_rows) || anyNA(sort_rows))) {
+    warning("'sort_rows' is invalid. Setting to NULL.")
+    sort_rows <- NULL
+  }
+
+  if (!is.null(sort_rows)) {
+
+    missing_sort_rows <- sort_rows[!sort_rows %in% variables]
+
+    if (length(missing_sort_rows) > 0) {
+      warning(
+        paste0(
+          "The following variable name(s) provided in the `sort_rows` argument ",
+          "are not included in the `variables` argument: ",
+          paste(missing_sort_rows, collapse = ", ")
+        )
+      )
+      sort_rows <- NULL
+    }
+  }
+
+
+  #--------------
+  # add_measure_ident
+  #--------------
+  ok <- testLogical(add_measure_ident, any.missing = FALSE, len = 1)
+
+  if (!ok) {
+    warning("'add_measure_ident' is invalid. Setting to TRUE.")
+    add_measure_ident <- TRUE
+  }
+  #--------------
+  #  treatment_order
+  #--------------
+
+  # assert(
+  #   is.null(treatment_order) ||
+  #     (is.character(treatment_order) && !any(is.na(treatment_order))),
+  #   msg = "'treatment_order' must be either NULL or a character vector without missing values."
+  # )
+
+  if (!is.null(treatment_order)) {
+    if (!is.character(treatment_order) || anyNA(treatment_order)) {
+      warning("'treatment_order' is invalid. Setting to NULL.")
+      treatment_order <- NULL
+    }
+  }
+
+  if(!is.null(treatment_order) & is.logical(treatment_arm)) {
+    warning("'treatment_order' is specified, but the parameters treatment_arm is empty.
+            'treatment_order' is ignored.")
+      treatment_order <- NULL
+  }
+
+  if (!is.null(treatment_order) & !is.logical(treatment_arm)) {
+
+    missing_treatment <- treatment_order[
+      !treatment_order %in% unique(data[[treatment_arm]])
+    ]
+
+    if (length(missing_treatment) > 0) {
+      warning(
+        paste0(
+          "'Treatment_order' is ignored, because the following element(s) in `treatment_order` are not part of the ",
+          "categories in `treatment_arm`: ",
+          paste(missing_treatment, collapse = ", ")
+        )
+      )
+      treatment_order <- NULL
+    }
+  }
+
+
+
+
+  #--------------
+  #  group_order
+  #--------------
+
+  # assert(
+  #   is.null(group_order) ||
+  #     (is.character(group_order) && !any(is.na(group_order))),
+  #   msg = "group_order' must be either NULL or a character vector without missing values."
+  # )
+
+  if (!is.null(group_order)) {
+    if (!is.character(group_order) || anyNA(group_order)) {
+      warning("'group_order' is invalid. Setting to NULL.")
+      treatment_order <- NULL
+    }
+  }
+
+  if(!is.null(group_order) & is.logical(group_var)) {
+    warning("'group_order' is specified, but the parameters group_var is empty.
+            'group_order' is ignored.")
+    group_order <- NULL
+  }
+
+  if (!is.null(group_order) & !is.logical(group_var)) {
+
+    missing_group <- group_order[
+      !group_order %in% unique(data[[group_var]])
+    ]
+
+    if (length(missing_group) > 0) {
+      warning(
+        paste0(
+          "'Group order' is being ignored, because the following element(s) in `group_order` are not part of the ",
+          "categories in `group_var`: ",
+          paste(missing_treatment, collapse = ", ")
+        )
+      )
+      group_order <- NULL
+    }
+  }
+
+
+  if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+    if (xor(!is.null(treatment_order), !is.null(group_order))) {
+      warning("There is a nested grouping variable (group_var, treatment_arm),
+           but ordering is only definied for one of these two grouping variables. 'treatment_order' and 'group_order are ignored'")
+      treatment_order <- NULL
+      group_order <- NULL
+    }
+  }
+
+
+
+
+
+  #--------------------------------------------------------------------------------
+  # Creating now the Table1
+  #--------------------------------------------------------------------------------
+
+  #------------------------------------------------------
+  # Step 1: Check, if and which variables are numeric and which are categorical
+  #------------------------------------------------------
   num_vec <- c()
   cat_vec <- c()
   var_type <- sapply(data[, variables], function(x) all(is.numeric(x)))
   num_vec <- names(var_type[var_type == TRUE])
   cat_vec <- names(var_type[var_type == FALSE])
 
-  ###########################################################
+  #----------------------------------------------------
   # Step2: Create Tab 1,
-  ###########################################################
+  #----------------------------------------------------
 
   tab_cat1 <- helper_summarize_cat(
     data = data,
@@ -278,14 +481,11 @@ Table1_flex <- function(data,
   tab1 <- rbind(tab_cat1, tab_num1)
 
 
-  ###############################################################
-  # p-values: this option is only available, if I have a pairwise comparison between groups
-  # this means. if chleifen to control: number_arms = 1: no pvalues and SMDs,
-  # arms = 2, no problem!, arms >2: case: MULtIPLY, I need an additional function,
-  # to tell R, tht I want pairwise comparisons
-  #################################################################
+  #----------------------------------------------------------------
+  # p-values:
+  #---------------------------------------------------------------
 
-  if (display_pvalue & !is.logical(group_var)) {
+  if (display_pvalue & (xor(!is.logical(group_var), !is.logical(treatment_arm)))) {
     pcat <- helper_testing_cat(
       data = data,
       cat_vec = cat_vec,
@@ -305,11 +505,11 @@ Table1_flex <- function(data,
   }
 
 
-  ##################################################################
+  #---------------------------------------------------------------
   # Standardized mean differences
-  ##################################################################
+  #---------------------------------------------------------------
 
-  if (display_smd & !is.logical(group_var)) {
+  if (display_smd & (xor(!is.logical(group_var), !is.logical(treatment_arm)))) {
     smd_data <- helper_smd(
       data = data,
       variables = variables,
@@ -317,15 +517,14 @@ Table1_flex <- function(data,
       treatment_arm = treatment_arm
     )
 
-    smd_data <- smd_data %>%
-      rename(name = .data$variable)
+    names(smd_data)[names(smd_data) == "variable"] <- "name"
 
     tab1 <- merge(tab1, smd_data, by = "name", all.x = TRUE)
   }
 
-  ##################################################################
+  #--------------------------------------------------------------
   # Missing values
-  ###############################################################
+  #--------------------------------------------------------------
 
   if (display_missings) {
     miss_val <- helper_summarize_missings(
@@ -340,9 +539,9 @@ Table1_flex <- function(data,
     tab1 <- rbind.fill(tab1, miss_val)
   }
 
-  #############################################################
+  #---------------------------------------------------------------
   # Step 3: Designing the output table
-  ################################################################
+  #---------------------------------------------------------------
   tab1 <- helper_layout(
     tab1 = tab1,
     data = data,

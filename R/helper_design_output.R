@@ -23,14 +23,10 @@
 #'
 #' @return Table 1 as flextable object
 #'
-#' @importFrom dplyr mutate arrange group_by mutate_at summarise rename relocate
-#' row_number n
 #' @importFrom stringr str_subset
-#' @importFrom tidyr all_of
 #' @importFrom flextable flextable bold hline set_header_labels align separate_header
 #' compose align as_paragraph
 #' @importFrom magrittr %>%
-#' @importFrom rlang sym
 #' @noRd
 helper_layout <- function(tab1,
                           data,
@@ -48,7 +44,34 @@ helper_layout <- function(tab1,
   #------------------------------------------------------------------------------
   # Ordering rows
   #------------------------------------------------------------------------------
-  tab1 <- tab1[order(factor(tab1$name, levels = sort_rows)), ]
+  if (is.logical(sort_rows)) {
+    # to avoid strange ordering because of variable = NA, set NA to ""
+    tab1$variable <- ifelse(is.na(tab1$variable), "", tab1$variable)
+
+    tab1 <- tab1[
+      order(
+        tab1$name,
+        tab1$variable == "missing",
+        is.na(tab1$variable)
+      ),
+    ]
+
+
+  } else{
+    all_vars <- unique(tab1$name)
+    tab1$name <- factor(tab1$name, levels = c(sort_rows, setdiff(all_vars, sort_rows)))
+    # to avoid strange ordering because of variable = NA, set NA to ""
+    tab1$variable <- ifelse(is.na(tab1$variable), "", tab1$variable)
+
+    tab1 <- tab1[
+      order(
+        tab1$name,
+        tab1$variable == "missing",
+        is.na(tab1$variable)
+      ),
+    ]
+  }
+
 
   #--------------------------------------------------------------------------------
   # adding summary measures identifiers to the variable names
@@ -58,11 +81,6 @@ helper_layout <- function(tab1,
   # a, categorical variables
   #-----------------------------------------------------
 
-  all_measure_options_cat <- c("absolute", "relative", "both1", "both2")
-  measure_idenifier_cat <- c(" [n]", " [%]", " [n (%)]", " [% (n)]")
-  identifier_cat <-
-    measure_idenifier_cat[match(measures_cat, all_measure_options_cat)]
-
 
     if (length(measures_cat) == 2 && measures_cat[1] == "absolute" & measures_cat[2] == "relative") {
       measures_cat <- "both1"
@@ -70,6 +88,10 @@ helper_layout <- function(tab1,
       measures_cat <- "both2"
     }
 
+    all_measure_options_cat <- c("absolute", "relative", "both1", "both2")
+    measure_idenifier_cat <- c(" [n]", " [%]", " [n (%)]", " [% (n)]")
+    identifier_cat <-
+      measure_idenifier_cat[match(measures_cat, all_measure_options_cat)]
   #-------------------------------------------------
   # numerical variables
   #-------------------------------------------------
@@ -191,55 +213,62 @@ helper_layout <- function(tab1,
   }
 
 
-  ##########################
+  #---------------------------------------------------------------------------------
   # calculation of sample size in each group
-  #########################
+  #---------------------------------------------------------------------------------
 
-  # if only one group
+  # if there is no group
   if (is.logical(group_var)) {
-    number_group <- data %>%
-      summarise(number = n()) %>%
-      mutate(new_col = paste0("measure\n(N=", .data$number, ")"))
+
+    number_group <- data.frame(
+      number = nrow(data),
+      stringsAsFactors = FALSE)
+
+    number_group$new_col <- paste0("measure\n(N=", number_group$number, ")")
     names(tab1)[names(tab1) == "measure"] <- number_group$new_col
-  } else {
-    # more than one group
-    if (!is.logical(treatment_arm)) {
-      # treatment arm + treatment group
-      group_var1 <- sym(group_var)
-      treatment_arm1 <- sym(treatment_arm)
 
-      data1 <- data %>%
-        rename(
-          group = !!group_var1,
-          treatment_arm = !!treatment_arm1
-        ) %>%
-        mutate(group = paste(treatment_arm, group, sep = " "))
-    } else {
-      # only treatment groups
-      group_var1 <- sym(group_var)
-      data1 <- data %>%
-        rename(group = !!group_var1)
-    }
+   } else{
+     # more than one group
+      if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+        # merge the treatment and group variables into one variable
+        data1 <- data
+        data1$group <- paste(
+          data[[treatment_arm]],
+          data[[group_var]],
+          sep = " "
+        )
 
-    # Calculate the sample size stratified by group
-    number_group <- data1 %>%
-      group_by(group) %>%
-      summarise(number = n()) %>%
-      mutate(new_col = paste0(group, "\n(N=", number, ")"))
+      } else if (!is.logical(group_var)) {
+        # only grouping variable
+        data1 <- data
+        data1$group <- data[[group_var]]
+
+      } else {
+        data1 <- data
+        data1$group <- data[[treatment_arm]]
+      }
+     # Calculate the sample size stratified by group
+      number_group <- data.frame(
+       group = names(table(data1$group)),
+       number = as.vector(table(data1$group)),
+       stringsAsFactors = FALSE
+     )
+
+     number_group$new_col <- paste0(
+       number_group$group,
+       "\n(N=",
+       number_group$number,
+       ")"
+     )
+
 
     # matching the number per group with the colnames
-
     dub_var <- dub_var[dub_var != "name"]
+
     helper_col <-
       colnames[!colnames %in% c("name", "variable", dub_var)]
+
     helper_col <- gsub(".*\\_", "", helper_col)
-
-
-    # print(c(
-    #   "name", "variable", number_group$new_col[match(helper_col, number_group$group)],
-    #   dub_var
-    # ))
-
 
     colnames(tab1) <- c(
       "name", "variable", number_group$new_col[match(helper_col, number_group$group)],
@@ -261,12 +290,6 @@ helper_layout <- function(tab1,
   # Creation of the flextable
   ####################################
   if (flextable_output == TRUE) {
-    if (!is.logical(treatment_arm)) {
-      # Remove the first underscore (this affects smd and p values only for splitting
-      # nicely the header and deleting the value in p-value)
-      colnames(tab1) <- sub("_", " ", colnames(tab1))
-      colnames(tab1) <- gsub(" value", "", colnames(tab1))
-    }
 
     solid_lines <- which(!is.na(tab1$name))[-1]
     dashed_lines <- which(tab1$variable == "missing")
@@ -290,7 +313,13 @@ helper_layout <- function(tab1,
         part = "all"
       )
 
-    if (!is.logical(treatment_arm)) {
+    if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+
+      # Remove the first underscore (this affects smd and p values only for splitting
+      # nicely the header and deleting the value in p-value)
+      colnames(tab1) <- sub("_", " ", colnames(tab1))
+      colnames(tab1) <- gsub(" value", "", colnames(tab1))
+
       tab1 <- tab1 %>%
         separate_header(
           opts = "span-top",
