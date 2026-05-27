@@ -270,7 +270,7 @@ Table1_flex <- function(data,
   }
 
   if ((!is.logical(group_var) && (length(unique(data[, group_var])) > 2)) |
-      (!is.logical(treatment_arm & is.logical(group_var)) && (length(unique(data[, treatment_arm])) > 2)) &
+      (!is.logical(treatment_arm) & is.logical(group_var)) && (length(unique(data[, treatment_arm])) > 2) &
       (display_pvalue == TRUE | display_smd == TRUE)) {
     warning("The method for comparing more than two groups is not implemented yet.")
     display_pvalue <- FALSE
@@ -323,7 +323,7 @@ Table1_flex <- function(data,
     if (length(missing_sort_rows) > 0) {
       warning(
         paste0(
-          "The following variable name(s) provided in the `sort_rows` argument ",
+          "'sort_rows' is ignored, because the following variable name(s) provided in the `sort_rows` argument ",
           "are not included in the `variables` argument: ",
           paste(missing_sort_rows, collapse = ", ")
         )
@@ -354,7 +354,7 @@ Table1_flex <- function(data,
 
   if (!is.null(treatment_order)) {
     if (!is.character(treatment_order) || anyNA(treatment_order)) {
-      warning("'treatment_order' is invalid. Setting to NULL.")
+      warning("'treatment_order' input is invalid. Setting to NULL.")
       treatment_order <- NULL
     }
   }
@@ -420,7 +420,7 @@ Table1_flex <- function(data,
         paste0(
           "'Group order' is being ignored, because the following element(s) in `group_order` are not part of the ",
           "categories in `group_var`: ",
-          paste(missing_treatment, collapse = ", ")
+          paste(missing_group, collapse = ", ")
         )
       )
       group_order <- NULL
@@ -450,7 +450,7 @@ Table1_flex <- function(data,
   #------------------------------------------------------
   num_vec <- c()
   cat_vec <- c()
-  var_type <- sapply(data[, variables], function(x) all(is.numeric(x)))
+  var_type <- sapply(data[, variables, drop = FALSE], function(x) all(is.numeric(x)))
   num_vec <- names(var_type[var_type == TRUE])
   cat_vec <- names(var_type[var_type == FALSE])
 
@@ -485,7 +485,7 @@ Table1_flex <- function(data,
   # p-values:
   #---------------------------------------------------------------
 
-  if (display_pvalue & (xor(!is.logical(group_var), !is.logical(treatment_arm)))) {
+  if (display_pvalue) {
     pcat <- helper_testing_cat(
       data = data,
       cat_vec = cat_vec,
@@ -509,7 +509,7 @@ Table1_flex <- function(data,
   # Standardized mean differences
   #---------------------------------------------------------------
 
-  if (display_smd & (xor(!is.logical(group_var), !is.logical(treatment_arm)))) {
+  if (display_smd ) {
     smd_data <- helper_smd(
       data = data,
       variables = variables,

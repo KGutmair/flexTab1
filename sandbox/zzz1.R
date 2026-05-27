@@ -86,7 +86,7 @@ table(at6$ecog, at6$maint_started, useNA = "always")
 #-----------------------------------------------------------------------------------
 # One groups
 #-----------------------------------------------------------------------------------
-helper_summarize_cat(data = A_arm,
+test <- helper_summarize_cat(data = A_arm,
                      cat_vec = categorial_variables,
                      group_var = FALSE,
                      treatment_arm = FALSE,
@@ -94,6 +94,16 @@ helper_summarize_cat(data = A_arm,
                      measures_cat = c("absolute", "relative"),
                      #measures_cat = c("absolute"),
                      measure_style = FALSE)
+
+# only one variable
+test1 <- helper_summarize_cat(data = A_arm,
+                     cat_vec = c("ecog"),
+                     group_var = FALSE,
+                     treatment_arm = FALSE,
+                     new_line = FALSE,
+                     measures_cat = c("absolute", "relative"),
+                     #measures_cat = c("absolute"),
+                     measure_style = TRUE)
 
 
 helper_summarize_cat(data = A_arm,

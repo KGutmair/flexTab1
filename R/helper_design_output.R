@@ -28,6 +28,21 @@
 #' compose align as_paragraph
 #' @importFrom magrittr %>%
 #' @noRd
+
+# tab1 <- out1
+# data <- at
+# group_var = "maint_started"
+# treatment_arm = "rnd"
+# measures_cat = c("absolute", "relative")
+# measures_num = c("median", "min", "max")
+# cat_var = categorial_variables
+# new_line = FALSE
+# flextable_output = TRUE
+# sort_rows = NULL
+# add_measure_ident = TRUE
+# treatment_order = c("I", "A", "A+I")
+# group_order = c("1", "0")
+
 helper_layout <- function(tab1,
                           data,
                           group_var = FALSE,
@@ -218,7 +233,7 @@ helper_layout <- function(tab1,
   #---------------------------------------------------------------------------------
 
   # if there is no group
-  if (is.logical(group_var)) {
+  if (is.logical(group_var) & is.logical(treatment_arm)) {
 
     number_group <- data.frame(
       number = nrow(data),
@@ -232,6 +247,7 @@ helper_layout <- function(tab1,
       if (!is.logical(treatment_arm) & !is.logical(group_var)) {
         # merge the treatment and group variables into one variable
         data1 <- data
+
         data1$group <- paste(
           data[[treatment_arm]],
           data[[group_var]],
@@ -274,8 +290,9 @@ helper_layout <- function(tab1,
       "name", "variable", number_group$new_col[match(helper_col, number_group$group)],
       dub_var
     )
-
+#--------------------------------------
     # reorder the columns
+    #-----------------------------------
     tab1 <- sort_columns(
       data = tab1,
       treatment_order = treatment_order,
@@ -290,11 +307,18 @@ helper_layout <- function(tab1,
   # Creation of the flextable
   ####################################
   if (flextable_output == TRUE) {
+    if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+
+      # Remove the first underscore (this affects smd and p values only for splitting
+      # nicely the header and deleting the value in p-value)
+      colnames(tab1) <- sub("_", " ", colnames(tab1))
+      colnames(tab1) <- gsub(" value", "", colnames(tab1))
+    }
 
     solid_lines <- which(!is.na(tab1$name))[-1]
     dashed_lines <- which(tab1$variable == "missing")
 
-    tab1 <- flextable(tab1) %>%
+    tab1<- flextable(tab1) %>%
       bold(part = "header") %>%
       bold(j = 1:2, part = "body") %>%
       hline(i = solid_lines - 1, part = "body") %>%
@@ -314,11 +338,6 @@ helper_layout <- function(tab1,
       )
 
     if (!is.logical(treatment_arm) & !is.logical(group_var)) {
-
-      # Remove the first underscore (this affects smd and p values only for splitting
-      # nicely the header and deleting the value in p-value)
-      colnames(tab1) <- sub("_", " ", colnames(tab1))
-      colnames(tab1) <- gsub(" value", "", colnames(tab1))
 
       tab1 <- tab1 %>%
         separate_header(

@@ -23,6 +23,7 @@
 #' @importFrom stats wilcox.test
 #' @noRd
 
+
 helper_testing_num <- function(data,
                                num_vec,
                                group_var = FALSE,
@@ -76,7 +77,7 @@ helper_testing_num <- function(data,
     } else {
       # if one group has only NA in a specific variable, return NA
       p_values <-
-        unlist(lapply(data1[, num_vec], function(x) {
+        unlist(lapply(data1[, num_vec, drop = FALSE], function(x) {
 
           tryCatch({
 
@@ -115,7 +116,7 @@ helper_testing_num <- function(data,
     return("this method is not implemented yet")
   } else {
     #--------------------------------------------------------
-    # 3. Comparison of more than one arm, so nested structur
+    # 3. Comparison of more than one arm, so nested structure
     #----------------------------------------------------------
 
     #---------------------------------------------
@@ -149,7 +150,7 @@ helper_testing_num <- function(data,
         data2 <- data1[data1$treat_arm == arms[k], ]
 
         p_values <-
-          unlist(lapply(data2[, num_vec], function(x) {
+          unlist(lapply(data2[, num_vec, drop = FALSE], function(x) {
 
             tryCatch({
 

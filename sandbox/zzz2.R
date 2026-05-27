@@ -95,12 +95,25 @@ helper_summarize_missings(data = A_arm,
                           measures = c("absolute", "relative"),
                           measure_style = TRUE)
 
-helper_summarize_missings(data = A_arm,
-                          var_vec = c(categorial_variables, num_vec1),
+arm1 <- A_arm
+arm1$wbc[1] <- NA
+
+helper_summarize_missings(data = arm1,
+                          var_vec = "ldh",
                           group_var = FALSE,
                           treatment_arm = FALSE,
-                          measures = c("relative", "absolute"),
+                          measures = c("absolute", "relative"),
                           measure_style = TRUE)
+
+
+data = arm1
+var_vec = "wbc"
+group_var = FALSE
+treatment_arm = FALSE
+measures = c("absolute", "relative")
+measure_style = TRUE
+
+
 
 
 

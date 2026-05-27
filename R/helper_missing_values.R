@@ -25,13 +25,25 @@
 #'          for missing values specified in the input parameters.
 #' @noRd
 
+# data <- at
+# var_vec <- all_vars
+# group_var = "maint_started"
+# treatment_arm = "rnd"
+# measures = c("absolute", "relative")
+# measure_style = TRUE
+
+
+
+
 helper_summarize_missings <- function(data,
                           var_vec,
                           group_var = FALSE,
                           treatment_arm = FALSE,
                           measures = c("absolute", "relative"),
                           measure_style = TRUE) {
-  tab1_list <- list()
+
+
+   tab1_list <- list()
   i <- 1
   all_measure_options <- c("absolute", "relative")
   names_data <- c("n", "relative_freq")
@@ -59,7 +71,7 @@ helper_summarize_missings <- function(data,
     )
 
     # Keep only variables with at least one missing value
-    rel_missing <- rel_missing[!(is.na(rel_missing) | rel_missing == 0)]
+    #rel_missing <- rel_missing[!(is.na(rel_missing) | rel_missing == 0)]
 
     # Create output data frame
     tab2_2 <- data.frame(
@@ -114,27 +126,30 @@ helper_summarize_missings <- function(data,
     #-----------------------------------------------------------------------------------
   } else {
     if (!is.logical(treatment_arm) & !is.logical(group_var)) {
-      names(data)[names(data) == group_var] <- "group"
-      names(data)[names(data) == treatment_arm] <- "treatment_arm"
+      data1 <- data
+      names(data1)[names(data1) == group_var] <- "group"
+      names(data1)[names(data1) == treatment_arm] <- "treatment_arm"
 
-      data$group <- paste(
-        data$treatment_arm,
-        data$group,
+      data1$group <- paste(
+        data1$treatment_arm,
+        data1$group,
         sep = " "
       )
 
     } else if (!is.logical(treatment_arm)){
-      names(data)[names(data) == treatment_arm] <- "group"
+      data1 <- data
+      names(data1)[names(data1) == treatment_arm] <- "group"
     } else {
-      names(data)[names(data) == group_var] <- "group"
+      data1 <- data
+      names(data1)[names(data1) == group_var] <- "group"
     }
 
     #--------------------------------------------------------------------
     # no variables present or no NAs in any variable: return empty data.frame
     #------------------------------------------------------------------
-    if (length(var_vec) == 0 | any(is.na(data[var_vec])) == FALSE) {
+    if (length(var_vec) == 0 | any(is.na(data1[var_vec])) == FALSE) {
       keep_vars <- names_data[match(measures, all_measure_options)]
-      rwo_names1 <- expand.grid(unique(data$group), keep_vars)
+      rwo_names1 <- expand.grid(unique(data1$group), keep_vars)
       row_names2 <-
         sprintf("%s_%s", rwo_names1[, 2], rwo_names1[, 1])
       row_names <- c("name", "variable", row_names2)
@@ -148,8 +163,8 @@ helper_summarize_missings <- function(data,
     } else {
     # split variable by group
     split_x <- split(
-      data,
-      data$group
+      data1,
+      data1$group
     )
 
     # summarize within each group
@@ -210,8 +225,6 @@ helper_summarize_missings <- function(data,
   res_tab
 }
 
-
-
 #########################################################################
 # Helper function for the Tab1 functions to unify the names and style of the tab1_categorial
 # data.frame in order to merge this with the output of the numeric variables
@@ -237,6 +250,15 @@ helper_summarize_missings <- function(data,
 #'
 #'
 #' @noRd
+
+# data <- at
+# group_var = "maint_started"
+# treatment_arm = "rnd"
+# measures_cat <- c("absolute", "relative")
+# tab_cat_measure <- res_tab
+# cat_vec = all_vars
+
+
 
 cat_unify_names_miss <- function(data,
                             group_var = FALSE,
@@ -288,6 +310,7 @@ cat_unify_names_miss <- function(data,
     # 2. At least two groups
     #------------------------------------------------------------------------------
     if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+
       names(data)[names(data) == group_var] <- "group"
       names(data)[names(data) == treatment_arm] <- "treatment_arm"
 

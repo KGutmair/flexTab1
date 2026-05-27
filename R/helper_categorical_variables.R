@@ -26,6 +26,12 @@
 
 # old: tab1_categorical
 
+
+
+
+
+
+
 helper_summarize_cat <- function(data,
                             cat_vec,
                             group_var = FALSE,
@@ -154,6 +160,7 @@ helper_summarize_cat <- function(data,
       # categorical variables present
       #--------------------------------------------------------
     } else {
+
       tab1_list <- lapply(cat_vec, function(param) {
         # split variable by group
         split_x <- split(
@@ -197,22 +204,6 @@ helper_summarize_cat <- function(data,
             tmp$relative_freq[idx]
         }
 
-        # optional empty row
-        if (new_line) {
-
-        empty_row <- as.data.frame(
-          as.list(rep(NA, ncol(out)))
-        )
-
-        names(empty_row) <- names(out)
-
-        empty_row$name <- param
-
-        out <- rbind(empty_row, out)
-        }
-
-        rownames(out) <- NULL
-
         # if the variable in one group strata is zero, then I want to remove the NA row
         remove_row <- (
           nrow(out) > 1 &&
@@ -236,6 +227,23 @@ helper_summarize_cat <- function(data,
 
           out <- out[keep, , drop = FALSE]
         }
+
+        # optional empty row
+        if (new_line) {
+
+        empty_row <- as.data.frame(
+          as.list(rep(NA, ncol(out)))
+        )
+
+        names(empty_row) <- names(out)
+
+        empty_row$name <- param
+
+        out <- rbind(empty_row, out)
+        }
+
+        rownames(out) <- NULL
+
 
         out
       })
@@ -268,7 +276,6 @@ helper_summarize_cat <- function(data,
   }
   res_tab1
 }
-
 
 
 

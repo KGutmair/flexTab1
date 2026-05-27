@@ -42,7 +42,16 @@ helper_summarize_num(data = arm_A,
                                  treatment_arm = FALSE,
                                  new_line = FALSE,
                                  measures_num = c("min", "median", "max"),
-                                 measure_style = FALSE)
+                                 measure_style = TRUE)
+
+# only one variable
+test1 <- helper_summarize_num(data = arm_A,
+                     num_vec = c("score"),
+                     group_var = FALSE,
+                     treatment_arm = FALSE,
+                     new_line = FALSE,
+                     measures_num = c("min", "median", "max"),
+                     measure_style = TRUE)
 
 
 helper_summarize_num(data = arm_A,
