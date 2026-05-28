@@ -1,5 +1,3 @@
-
-
 #' Helper function: sorting rows and columns after a prespecified order, adding summary measure
 #'  identifiers, calculating sample size and transofr this into a nice `flextable()` output.
 #'
@@ -61,9 +59,7 @@ helper_layout <- function(tab1,
         is.na(tab1$variable)
       ),
     ]
-
-
-  } else{
+  } else {
     all_vars <- unique(tab1$name)
     tab1$name <- factor(tab1$name, levels = c(sort_rows, setdiff(all_vars, sort_rows)))
     # to avoid strange ordering because of variable = NA, set NA to ""
@@ -83,9 +79,9 @@ helper_layout <- function(tab1,
   # adding summary measures identifiers to the variable names
   #-------------------------------------------------------------------------------
   if (add_measure_ident == TRUE) {
-  #-----------------------------------------------------
-  # a, categorical variables
-  #-----------------------------------------------------
+    #-----------------------------------------------------
+    # a, categorical variables
+    #-----------------------------------------------------
 
 
     if (length(measures_cat) == 2 && measures_cat[1] == "absolute" & measures_cat[2] == "relative") {
@@ -98,9 +94,9 @@ helper_layout <- function(tab1,
     measure_idenifier_cat <- c(" [n]", " [%]", " [n (%)]", " [% (n)]")
     identifier_cat <-
       measure_idenifier_cat[match(measures_cat, all_measure_options_cat)]
-  #-------------------------------------------------
-  # numerical variables
-  #-------------------------------------------------
+    #-------------------------------------------------
+    # numerical variables
+    #-------------------------------------------------
     # Mapping
     all_measure_options_num <- c(
       "mean", "sd", "median", "min", "max",
@@ -117,11 +113,8 @@ helper_layout <- function(tab1,
     ]
 
     # Build identifier
-    identifier_num <- switch(
-      length(measures_lab),
-
+    identifier_num <- switch(length(measures_lab),
       paste0(" [", measures_lab, "]"),
-
       paste0(
         " [",
         measures_lab[1],
@@ -129,7 +122,6 @@ helper_layout <- function(tab1,
         measures_lab[2],
         ")]"
       ),
-
       paste0(
         " [",
         measures_lab[1],
@@ -224,48 +216,45 @@ helper_layout <- function(tab1,
 
   # if there is no group
   if (is.logical(group_var) & is.logical(treatment_arm)) {
-
     number_group <- data.frame(
       number = nrow(data),
-      stringsAsFactors = FALSE)
+      stringsAsFactors = FALSE
+    )
 
     number_group$new_col <- paste0("measure\n(N=", number_group$number, ")")
     names(tab1)[names(tab1) == "measure"] <- number_group$new_col
+  } else {
+    # more than one group
+    if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+      # merge the treatment and group variables into one variable
+      data1 <- data
 
-   } else{
-     # more than one group
-      if (!is.logical(treatment_arm) & !is.logical(group_var)) {
-        # merge the treatment and group variables into one variable
-        data1 <- data
+      data1$group <- paste(
+        data[[treatment_arm]],
+        data[[group_var]],
+        sep = " "
+      )
+    } else if (!is.logical(group_var)) {
+      # only grouping variable
+      data1 <- data
+      data1$group <- data[[group_var]]
+    } else {
+      data1 <- data
+      data1$group <- data[[treatment_arm]]
+    }
+    # Calculate the sample size stratified by group
+    number_group <- data.frame(
+      group = names(table(data1$group)),
+      number = as.vector(table(data1$group)),
+      stringsAsFactors = FALSE
+    )
 
-        data1$group <- paste(
-          data[[treatment_arm]],
-          data[[group_var]],
-          sep = " "
-        )
-
-      } else if (!is.logical(group_var)) {
-        # only grouping variable
-        data1 <- data
-        data1$group <- data[[group_var]]
-
-      } else {
-        data1 <- data
-        data1$group <- data[[treatment_arm]]
-      }
-     # Calculate the sample size stratified by group
-      number_group <- data.frame(
-       group = names(table(data1$group)),
-       number = as.vector(table(data1$group)),
-       stringsAsFactors = FALSE
-     )
-
-     number_group$new_col <- paste0(
-       number_group$group,
-       "\n(N=",
-       number_group$number,
-       ")"
-     )
+    number_group$new_col <- paste0(
+      number_group$group,
+      "\n(N=",
+      number_group$number,
+      ")"
+    )
 
 
     # matching the number per group with the colnames
@@ -274,7 +263,7 @@ helper_layout <- function(tab1,
     helper_col <-
       colnames[!colnames %in% c("name", "variable", dub_var)]
 
-    #helper_col <- gsub(".*\\_", "", helper_col)
+    # helper_col <- gsub(".*\\_", "", helper_col)
     helper_col <- sub("^[^_]*_", "", helper_col)
 
     colnames(tab1) <- c(
@@ -283,13 +272,16 @@ helper_layout <- function(tab1,
     )
 
 
-#--------------------------------------
+    #--------------------------------------
     # reorder the columns
     #-----------------------------------
     tab1 <- sort_columns(
-      data = tab1,
+      data = data,
+      tab1 = tab1,
       treatment_order = treatment_order,
-      group_order = group_order
+      group_order = group_order,
+      group_var = group_var,
+      treatment_arm = treatment_arm
     )
   }
 
@@ -298,7 +290,6 @@ helper_layout <- function(tab1,
   ####################################
   if (flextable_output == TRUE) {
     if (!is.logical(treatment_arm) & !is.logical(group_var)) {
-
       # Remove the first underscore (this affects smd and p values only for splitting
       # nicely the header and deleting the value in p-value)
       idx <- grepl("SMD|p-value", colnames(tab1))
@@ -312,8 +303,7 @@ helper_layout <- function(tab1,
       )
 
 
-
-      #colnames(tab1) <- sub("_", " ", colnames(tab1))
+      # colnames(tab1) <- sub("_", " ", colnames(tab1))
       colnames(tab1) <- gsub(" value", "", colnames(tab1))
 
       group_vec <- unique(data[[group_var]])
@@ -328,7 +318,7 @@ helper_layout <- function(tab1,
 
       pattern <- paste0("(", paste(treat_vec_escaped, collapse = "|"), ") ")
 
-      new_cols <- sub(pattern,"\\1|",cols)
+      new_cols <- sub(pattern, "\\1|", cols)
       colnames(tab1) <- new_cols
     }
 
@@ -355,7 +345,6 @@ helper_layout <- function(tab1,
       )
 
     if (!is.logical(treatment_arm) & !is.logical(group_var)) {
-
       tab1 <- tab1 %>%
         separate_header(
           opts = "span-top",

@@ -32,8 +32,8 @@ statistical options and the output layout. It supports:
   `flextable` package) or as a `"data.frame"`, allowing for further
   modifications or integration with other table formatting packages.
 
-- **Group Analysis**: Supports *single and grouped* summaries for
-  comparing treatment arms or other groups. Additionally, a nested group
+- **Group Analysis**: Supports summary measured for a *single group* and
+  stratified by *two or more groups*.Additionally, a nested group
   structure is supported, allowing for the comparison of subgroups
   within main groups.
 

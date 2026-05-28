@@ -54,6 +54,7 @@
 #' @import checkmate
 #' @import magrittr
 #' @importFrom rlang .data
+#' @references Austin, P. C. (2011). An Introduction to Propensity Score Methods for Reducing the Effects of Confounding in Observational Studies. Multivariate Behavioral Research, 46(3), 399–424. https://doi.org/10.1080/00273171.2011.568786
 #'
 #' @examples
 #' if (requireNamespace("survival", quietly = TRUE)) {
