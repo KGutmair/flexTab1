@@ -88,7 +88,7 @@ tab1_example %>%
    autofit() 
 ```
 
-<img src="man/figures/README-unnamed-chunk-3-1.png" alt="" width="100%" />
+<img src="man/figures/README-unnamed-chunk-3-1.png" alt="" width="40%" />
 
 ### Table 1 for two treatment arms
 

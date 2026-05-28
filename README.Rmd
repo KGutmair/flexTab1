@@ -68,7 +68,7 @@ library(flextable)
 ```
 
 ### Table 1 for one group/treatment arm
-```{r}
+```{r, out.width='40%'}
 
 tab1_example <- Table1_flex(
      data = pbc,
