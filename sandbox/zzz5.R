@@ -291,12 +291,12 @@ at$new_treat2 <- ifelse(at$rnd == "A", "arm A",
                         ifelse(at$rnd == "A+I", "arm:A+I",
                                "arm-I"))
 
-at$new_treat3 <- ifelse(at$rnd == "A", "arm:A",
+at$new_treat3 <- ifelse(at$rnd == "A", "arm_A",
                         ifelse(at$rnd == "A+I", "arm:A+I",
                                "arm:I"))
 
-at$new_maint <- ifelse(at$maint_started == "0", "no maintenance started",
-                       "maintenance started")
+at$new_maint <- ifelse(at$maint_started == "0", "no_maintenance_started",
+                       "maintenance_started")
 table(at$new_maint)
 
 at$new_maint1 <- ifelse(at$maint_started == "0", "no:maintenance started",
@@ -316,7 +316,7 @@ all_vars <- c(num_vec1, categorial_variables)
 Table1_flex(data = at,
             variables = all_vars,
             group_var = FALSE,
-            treatment_arm = "new_treat1",
+            treatment_arm = "new_treat2",
             new_line = TRUE,
             measures_cat = c("absolute", "relative"),
             measures_num = c("median","min" ,"max"),
@@ -333,7 +333,7 @@ Table1_flex(data = at,
 # 2 groups
 Table1_flex(data = at,
             variables = all_vars,
-            group_var = "new_maint",
+            group_var = "new_maint2",
             treatment_arm = FALSE,
             new_line = TRUE,
             measures_cat = c("absolute", "relative"),
@@ -342,14 +342,14 @@ Table1_flex(data = at,
             display_smd = TRUE,
             display_missings = TRUE,
             flextable_output = TRUE,
-            sort_rows = c("ecog", "mipi", "ki67"),
+            #sort_rows = c("ecog", "mipi", "ki67"),
             add_measure_ident = TRUE,
             treatment_order = NULL,
-            group_order = c("no maintenance started", "maintenance started"))
+            group_order = NULL)
 
 Table1_flex(data = at,
             variables = all_vars,
-            group_var = "new_maint2",
+            group_var = "new_maint1",
             treatment_arm = FALSE,
             new_line = TRUE,
             measures_cat = c("absolute", "relative"),
@@ -380,11 +380,15 @@ Table1_flex(data = at,
             treatment_order = NULL,
             group_order = NULL)
 
+unique(at$new_treat1)
+unique(at$new_treat)
+unique(at$new_treat3)
+unique(at$new_maint)
 
 Table1_flex(data = at,
             variables = all_vars,
-            group_var = "new_maint2",
-            treatment_arm = "new_treat",
+            group_var = "new_maint",
+            treatment_arm = "new_treat3",
             new_line = TRUE,
             measures_cat = c("absolute", "relative"),
             measures_num = c("median","min" ,"max"),
@@ -394,77 +398,9 @@ Table1_flex(data = at,
             flextable_output = TRUE,
             sort_rows = c("ecog", "mipi", "ki67"),
             add_measure_ident = TRUE,
-            treatment_order = NULL,
-            group_order = NULL)
+            treatment_order = c("arm:I", "arm:A+I", "arm_A"),
+            group_order = c("maintenance_started", "no_maintenance_started"))
 
 # here is a beauty error in the flextable (it splits also on the free space in treatmet arm)
 
 
-Table1_flex(data = at,
-            variables = all_vars,
-            group_var = "new_maint2",
-            treatment_arm = "new_treat2",
-            new_line = TRUE,
-            measures_cat = c("absolute", "relative"),
-            measures_num = c("median","min" ,"max"),
-            display_pvalue = TRUE,
-            display_smd = FALSE,
-            display_missings = TRUE,
-            flextable_output = TRUE,
-            sort_rows = c("ecog", "mipi", "ki67"),
-            add_measure_ident = TRUE,
-            treatment_order = NULL,
-            group_order = NULL)
-
-# here also schoenheitsfehler
-
-
-Table1_flex(data = at,
-            variables = all_vars,
-            group_var = "new_maint1",
-            treatment_arm = "new_treat2",
-            new_line = TRUE,
-            measures_cat = c("absolute", "relative"),
-            measures_num = c("median","min" ,"max"),
-            display_pvalue = TRUE,
-            display_smd = FALSE,
-            display_missings = TRUE,
-            flextable_output = TRUE,
-            sort_rows = c("ecog", "mipi", "ki67"),
-            add_measure_ident = TRUE,
-            treatment_order = NULL,
-            group_order = NULL)
-
-# So I need a rule that those characters in threatment should not get splitted
-# in the header, the only split should be between treatment_var and group_var
-
-
-# other way round
-Table1_flex(data = at,
-            variables = all_vars,
-            treatment_arm = "new_maint1",
-            group_var = "new_treat3",
-            new_line = TRUE,
-            measures_cat = c("absolute", "relative"),
-            measures_num = c("median","min" ,"max"),
-            display_pvalue = TRUE,
-            display_smd = FALSE,
-            display_missings = TRUE,
-            flextable_output = TRUE,
-            sort_rows = c("ecog", "mipi", "ki67"),
-            add_measure_ident = TRUE,
-            treatment_order = NULL,
-            group_order = NULL)
-# here the same: this splits on every Sonderzeichen, that is not numeric or alphabetic
-
-# result:
-# I only have difficulties, when I have a unterstich. This is by design, since I
-# use the Unterstrich to append p_value names etc (arm A_p-value) and then use this also
-# as identifier. if I then have a _ before, my programm splits on the wrong side.
-# There are several approaches: in the very first step before doing any other computations,
-# I could remove those "_" and add it than later in the final version. Or I ask specifically to
-# split only on the last "_" in my code.
-
-# and I have the Schoenheitsfehler in my flextable variable, since when I have several
-# non alphanumeric characters within one category, it splits there several times.
-# But not always, with : or - not

@@ -31,17 +31,17 @@
 
 # tab1 <- out1
 # data <- at
-# group_var = "maint_started"
-# treatment_arm = "rnd"
+# group_var = "new_maint"
+# treatment_arm = "new_treat3"
 # measures_cat = c("absolute", "relative")
 # measures_num = c("median", "min", "max")
 # cat_var = categorial_variables
 # new_line = FALSE
 # flextable_output = TRUE
-# sort_rows = NULL
+# sort_rows = c("ecog", "mipi", "ki67")
 # add_measure_ident = TRUE
-# treatment_order = c("I", "A", "A+I")
-# group_order = c("1", "0")
+# treatment_order = NULL
+# group_order = c("maintenance_started", "no_maintenance_started")
 
 helper_layout <- function(tab1,
                           data,
@@ -227,7 +227,6 @@ helper_layout <- function(tab1,
     )
   }
 
-
   #---------------------------------------------------------------------------------
   # calculation of sample size in each group
   #---------------------------------------------------------------------------------
@@ -284,12 +283,15 @@ helper_layout <- function(tab1,
     helper_col <-
       colnames[!colnames %in% c("name", "variable", dub_var)]
 
-    helper_col <- gsub(".*\\_", "", helper_col)
+    #helper_col <- gsub(".*\\_", "", helper_col)
+    helper_col <- sub("^[^_]*_", "", helper_col)
 
     colnames(tab1) <- c(
       "name", "variable", number_group$new_col[match(helper_col, number_group$group)],
       dub_var
     )
+
+
 #--------------------------------------
     # reorder the columns
     #-----------------------------------
@@ -300,9 +302,6 @@ helper_layout <- function(tab1,
     )
   }
 
-
-
-
   #####################################
   # Creation of the flextable
   ####################################
@@ -311,14 +310,41 @@ helper_layout <- function(tab1,
 
       # Remove the first underscore (this affects smd and p values only for splitting
       # nicely the header and deleting the value in p-value)
-      colnames(tab1) <- sub("_", " ", colnames(tab1))
+      idx <- grepl("SMD|p-value", colnames(tab1))
+
+
+      colnames(tab1)[idx] <- sub(
+        "_(?=SMD|p-value)",
+        " ",
+        colnames(tab1)[idx],
+        perl = TRUE
+      )
+
+
+
+      #colnames(tab1) <- sub("_", " ", colnames(tab1))
       colnames(tab1) <- gsub(" value", "", colnames(tab1))
+
+      group_vec <- unique(data[[group_var]])
+      treat_vec <- unique(data[[treatment_arm]])
+      cols <- colnames(tab1)
+
+      treat_vec_escaped <- gsub(
+        "([][{}()+*^$|\\\\?.])",
+        "\\\\\\1",
+        treat_vec
+      )
+
+      pattern <- paste0("(", paste(treat_vec_escaped, collapse = "|"), ") ")
+
+      new_cols <- sub(pattern,"\\1|",cols)
+      colnames(tab1) <- new_cols
     }
 
     solid_lines <- which(!is.na(tab1$name))[-1]
     dashed_lines <- which(tab1$variable == "missing")
 
-    tab1<- flextable(tab1) %>%
+    tab1 <- flextable(tab1) %>%
       bold(part = "header") %>%
       bold(j = 1:2, part = "body") %>%
       hline(i = solid_lines - 1, part = "body") %>%
@@ -342,7 +368,7 @@ helper_layout <- function(tab1,
       tab1 <- tab1 %>%
         separate_header(
           opts = "span-top",
-          split = " ",
+          split = "|",
           fixed = TRUE
         ) %>%
         compose(i = 1, j = c(1, 2), part = "header", value = as_paragraph("")) %>%
