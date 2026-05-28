@@ -12,9 +12,9 @@ coverage](https://codecov.io/gh/KGutmair/flexTab1/graph/badge.svg)](https://app.
 
 ## Overview
 
-This function creates a highly flexible Table 1 for descriptive
-statistics with options to customize both the statistical options and
-layout. It supports:
+This function creates a highly flexible summary measure table for
+descriptive statistics (“Table 1”) with options to customize both the
+statistical options and the output layout. It supports:
 
 - **Statistical Flexibility**: Various summary measures can be selected
   for categorical (*absolute*, *relative*) and numerical variables
@@ -25,19 +25,17 @@ layout. It supports:
   (SMD).
 
 - **Custom Layout**:The following layout options are available: *row
-  sorting*, the option to display *summary measure units* (e.g., n (%),
-  median (SD)), and an empty line after each variable for improved
-  readability. The output can be generated as either a
-  *publication-ready* `"flextable()"` *object* or as a `"data.frame"`,
-  allowing for further modifications or integration with other table
-  formatting packages.
+  sorting* and *column sorting*, the option to display *summary measure
+  units* (e.g., n (%), median (SD)), and an empty line after each
+  variable for improved readability. The output can be generated as
+  either a *publication-ready* output table (created with the
+  `flextable` package) or as a `"data.frame"`, allowing for further
+  modifications or integration with other table formatting packages.
 
 - **Group Analysis**: Supports *single and grouped* summaries for
   comparing treatment arms or other groups. Additionally, a nested group
-  structure is supported, allowing for the comparison of superior groups
-  (A, B, and C), each with two subgroups (x and y).
-
-This package is still an experimental version.
+  structure is supported, allowing for the comparison of subgroups
+  within main groups.
 
 ## Installation
 
@@ -51,7 +49,7 @@ devtools::install_github("KGutmair/flexTab1")
 
 ## Usage
 
-### Table 1 for one group/treatment arm
+### Loading data + preparation
 
 ``` r
 library(dplyr)
@@ -61,18 +59,28 @@ library(flextable)
 
 
 # Load pbc data from the survival package
-pbc <- survival::pbc
+ pbc <- survival::pbc
 
-baseline_var <- c("age", "chol", "sex", "stage", "platelet")
+   baseline_var <- c("age", "chol", "sex", "stage", "platelet")
 
-pbc <- pbc %>%
-     mutate_at(c("stage", "trt", "edema", "hepato"), function(x) as.factor(x)) %>%
-     filter(!is.na(trt)) %>%
-     mutate(trt = ifelse(trt == "1", "D-penicillmain", "Placebo"))
+   pbc[c("stage", "trt", "edema", "hepato")] <-
+     lapply(pbc[c("stage", "trt", "edema", "hepato")], as.factor)
 
- tab1_example <- Table1_flex(
+   pbc <- pbc[!is.na(pbc$trt), ]
+ pbc$trt <- ifelse(pbc$trt == "1",
+ "D-penicillamine",
+ "Placebo")
+```
+
+### Table 1 for one group/treatment arm
+
+``` r
+
+tab1_example <- Table1_flex(
      data = pbc,
-     variables = baseline_var 
+     variables = baseline_var,
+     measures_num = c("mean", "sd"),
+     measures_cat = c("absolute", "relative")
    )
 
 tab1_example %>%
@@ -80,7 +88,7 @@ tab1_example %>%
    autofit() 
 ```
 
-<img src="man/figures/README-unnamed-chunk-2-1.png" width="47%" />
+<img src="man/figures/README-unnamed-chunk-3-1.png" alt="" width="100%" />
 
 ### Table 1 for two treatment arms
 
@@ -88,12 +96,28 @@ tab1_example %>%
 tab1_example <- Table1_flex(
   data = pbc,
   variables = baseline_var,
+  group_var = "trt")
+
+
+tab1_example %>%
+   line_spacing(space = 1.7, part = "all") %>%
+   autofit() 
+```
+
+<img src="man/figures/README-unnamed-chunk-4-1.png" alt="" width="62%" />
+
+``` r
+tab1_example <- Table1_flex(
+  data = pbc,
+  variables = baseline_var,
   group_var = "trt",
-  add_measure_ident = TRUE,
+  add_measure_ident = FALSE,
   display_pvalue = TRUE, 
+  display_smd = TRUE,
   sort_rows = c("age", "sex", "stage", "chol", "platelet"),
   measures_cat = c("absolute", "relative"),
-  measures_num = c("median", "min", "max")
+  measures_num = c("median", "min", "max"),
+  group_order = c("Placebo", "D-penicillamine")
 )
 
 tab1_example %>%
@@ -101,12 +125,12 @@ tab1_example %>%
    autofit() 
 ```
 
-<img src="man/figures/README-unnamed-chunk-3-1.png" width="62%" />
+<img src="man/figures/README-unnamed-chunk-5-1.png" alt="" width="62%" />
 
 ### Table 1 for nested groups
 
 The Table1_flex also supports a nested group structure, meaning having
-subgroups within superior groups
+subgroups within main groups
 
 ``` r
 
@@ -117,6 +141,7 @@ tab1_example <- Table1_flex(
   group_var = "sex",
   treatment_arm = "trt",
   add_measure_ident = TRUE,
+  display_pvalue = TRUE,
   measures_cat = c("relative"),
   measures_num = c("mean","sd"),
   flextable_output = TRUE
@@ -127,4 +152,4 @@ tab1_example %>%
    autofit() 
 ```
 
-<img src="man/figures/README-unnamed-chunk-4-1.png" width="70%" />
+<img src="man/figures/README-unnamed-chunk-6-1.png" alt="" width="70%" />
