@@ -1,32 +1,23 @@
-# Problem: when having a treatment arm and a treatment group: I merge this with an
-# blanc space. Later, I filter with this: This is kind of insecure, since this can cause
-# problems, if the categories of treatment arm or groups contain also blanc spaces
-
-# This function is not be called in case of empty variables
-
-#########################################################
-# This is a helper function for the Tab1 function, which gives the Tab1 a nice layout
-# and converts it into a `flextable` object, if chosen
-########################################################
 
 
-#' Helper: Transforming a Tab1 data.frame into a Flextable
+#' Helper function: sorting rows and columns after a prespecified order, adding summary measure
+#'  identifiers, calculating sample size and transofr this into a nice `flextable()` output.
 #'
 #' @description
 #' This helper function is called within the `Table1_flex` function and transforms
 #' a data.frame (output of Table1_flex) into a publication-ready Table 1.
 #'
-#'
 #' @param tab1 A data.frame output of the `Table1_flex` function
 #' @inheritParams Table1_flex
 #'
 #'
-#' @return Table 1 as flextable object
+#' @return Table 1 as flextable object or `data.frame`
 #'
 #' @importFrom stringr str_subset
 #' @importFrom flextable flextable bold hline set_header_labels align separate_header
 #' compose align as_paragraph
-#' @importFrom magrittr %>%
+#' @importFrom stats ave
+
 #' @noRd
 
 # tab1 <- out1

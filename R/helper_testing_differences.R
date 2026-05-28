@@ -1,7 +1,4 @@
-#############################################################################
-# Wilcoxon Test test for numeric variables testing differences in baseline
-# variables between groups
-#############################################################################
+
 
 #' Helper: Testing for Difference for Numeric Variables
 #'
@@ -13,14 +10,11 @@
 #'
 #'
 #' @inheritParams Table1_flex
-#' @param num_vec A character vector containing the names of the numerical variables
-#'                for which differences should be tested and p-values displayed.
+#' @param num_vec A character vector containing the numerical variable names for which differences in its distributions should be tested.
 #'
 #' @return A data frame with variable names and corresponding p-values from the Wilcoxon test,
 #'         indicating whether the distributions of the variables differ between two groups.
-#' @importFrom dplyr rename mutate filter %>%
-#' @importFrom rlang sym
-#' @importFrom stats wilcox.test
+#' @importFrom stats wilcox.test complete.cases
 #' @noRd
 
 
@@ -194,25 +188,22 @@ helper_testing_num <- function(data,
 
 
 
-#############################################################################
-# fisher exact test for categorical vatiables testing differences in baseline
-# variables between groups
-#############################################################################
-
 #' Helper: Testing for Differences in Categorical Variables
 #'
 #' @description
-#' This function tests whether a numeric variable differs between two groups and provides
-#' the corresponding p-values using the Wilcoxon test. It also supports testing
-#' within a nested group structure, allowing comparisons between two subgroups
+#' This function tests whether a categorical variable differs between two groups and provides
+#' the corresponding p-values using the Chi-square test, Fisher testm if expected counts is smaller or equal 5.
+#' It also supports testing within a nested group structure, allowing comparisons between two subgroups
 #' within a larger, superior group.
 #'
 #' @inheritParams Table1_flex
 #' @param cat_vec A character vector containing the names of the categorical variables
 #'                for which differences should be tested and p-values displayed.
 #'
-#' @return A data frame with variable names and corresponding p-values from the Fisher´s exact test,
+#' @return A data frame with variable names and corresponding p-values from the Chi-square/Fisher´s exact test,
 #'         indicating whether the distributions of the variables differ between two groups.
+#'
+#'@importFrom stats fisher.test chisq.test
 #'
 #' @noRd
 
@@ -240,7 +231,7 @@ helper_testing_cat <- function(data,
     }
 
     p_val <- tryCatch({
-      chi_test <- chisq.test(tab)
+      chi_test <- suppressWarnings(chisq.test(tab))
 
       if (any(chi_test$expected < 5)) {
         fisher.test(tab)
@@ -390,14 +381,10 @@ helper_testing_cat <- function(data,
 
 
 
-#############################################################################
-# SMD for numeric and categorial variables
-#############################################################################
-
-#' Helper: Calculates Standardized mean differences
+#' Helper function: Calculates Standardized mean differences
 #'
 #' @description
-#' This function calculated the standardized mean differences of a variable between two groups.
+#' This function calculates the standardized mean differences of a variable between two groups.
 #' It also supports testing within a nested group structure, allowing comparisons
 #' between two subgroups within a larger, superior group.
 #'

@@ -1,45 +1,93 @@
-########################################################################
-# Function 1: absolute and relative frequencies of categorial variables
-#######################################################################
-
 #' Helper:Calculate Absolute and Relative Frequencies of Categorical Variables
 #'
-#'@description
-#'This helper function calculates summary statistics for categorical variables.
-#'One can choose to display only absolute frequencies, relative frequencies, or both.
-#'It works with one or more groups and also supports nested group comparisons for
-#'more complex analyses, allowing for the comparison of subgroup statistics within a superior group.
+#' @description
+#' This function is primarily used internally by `Table1_flex()`.
+#' It calculates summary statistics for categorical variables.
+#' One can choose to display only absolute frequencies, relative frequencies, or both.
+#' It works with one or more groups and also supports nested group comparisons for the comparison of subgroup statistics within a main group.
 #'
 #'
 #' @inheritParams Table1_flex
-#' @param cat_vec  A character vector specifying the names of the variables for which
-#'                the summary measuresshould be created.
+#' @param cat_vec  A character vector specifying the the variable names for which  the summary measures should be created.
 #' @param measure_style A logical value (TRUE/FALSE), default is `FALSE`. If `TRUE`, the function `cat_unify_names`
-#'        will be called to rename the column to "measures" and combine absolute and relative frequencies into
-#'        a single column, provided that more than one summary measure is selected.
-#' @return A `data.frame` containing the summary measures (one column for each summary measure)
-#'         specified in the input parameters.
+#'        is called to  combine absolute and relative frequencies into  a single column.
+#' @return A `data.frame` containing the summary measures of the chosen variables.
+#'
+#' @keywords internal
+#' @export
+#' @examples
+#' if (requireNamespace("survival", quietly = TRUE)) {
+#'   # Load pbc data from the survival package
+#'   pbc <- survival::pbc
+#'
+#'   baseline_var <- c("age", "chol", "platelet")
+#'
+#'   pbc[c("stage", "trt", "edema", "hepato")] <-
+#'     lapply(pbc[c("stage", "trt", "edema", "hepato")], as.factor)
+#'
+#'   pbc <- pbc[!is.na(pbc$trt), ]
+#'
+#'   pbc$trt <- ifelse(pbc$trt == "1",
+#'     "D-penicillamine",
+#'     "Placebo"
+#'   )
+#'
+#'   # Categorical summary measure for one group -------------------------------------------
+#'
+#'   helper_summarize_cat(
+#'     data = pbc,
+#'     cat_vec = c("stage", "edema", "hepato"),
+#'     group_var = FALSE,
+#'     treatment_arm = FALSE,
+#'     new_line = FALSE,
+#'     measures_cat = c("absolute", "relative"),
+#'     measure_style = FALSE
+#'   )
+#'
+#'   # Categorical summary measures summarized into one column
+#'   helper_summarize_cat(
+#'     data = pbc,
+#'     cat_vec = c("stage", "edema", "hepato"),
+#'     group_var = FALSE,
+#'     treatment_arm = FALSE,
+#'     new_line = FALSE,
+#'     measures_cat = c("absolute", "relative"),
+#'     measure_style = TRUE
+#'   )
+#'
+#'   # Categorical summary measures for two groups -----------------------------------------
+#'
+#'   helper_summarize_cat(
+#'     data = pbc,
+#'     cat_vec = c("stage", "edema", "hepato"),
+#'     group_var = "trt",
+#'     treatment_arm = FALSE,
+#'     new_line = FALSE,
+#'     measures_cat = c("absolute", "relative"),
+#'     measure_style = TRUE
+#'   )
 #'
 #'
+#'   # Categorical summary measures for a nested group structure ----------------------------
 #'
-#' @noRd
-
-# old: tab1_categorical
-
-
-
-
-
-
-
+#'   helper_summarize_cat(
+#'     data = pbc,
+#'     cat_vec = c("stage", "edema", "hepato"),
+#'     group_var = "sex",
+#'     treatment_arm = "trt",
+#'     new_line = FALSE,
+#'     measures_cat = c("absolute", "relative"),
+#'     measure_style = TRUE
+#'   )
+#' }
+#'
 helper_summarize_cat <- function(data,
-                            cat_vec,
-                            group_var = FALSE,
-                            treatment_arm = FALSE,
-                            new_line = FALSE,
-                            measures_cat = c("absolute", "relative"),
-                            measure_style = FALSE) {
-
+                                 cat_vec,
+                                 group_var = FALSE,
+                                 treatment_arm = FALSE,
+                                 new_line = FALSE,
+                                 measures_cat = c("absolute", "relative"),
+                                 measure_style = FALSE) {
   tab1_list <- list()
   all_measure_options <- c("absolute", "relative")
   names_data <- c("n", "relative_freq")
@@ -94,20 +142,20 @@ helper_summarize_cat <- function(data,
       # categorical variables for which measures are calculated
       #-----------------------------------------------
       tab1_list <- lapply(cat_vec, function(param) {
-
         tab1 <- summarize_categorical(data[[param]])
         tab1$name <- param
-        tab1 <- tab1[ ,c("name", "variable", "n", "relative_freq")]
+        tab1 <- tab1[, c("name", "variable", "n", "relative_freq")]
 
         if (new_line) {
-        empty_row <- data.frame(
-          name = param,
-          variable = NA,
-          n = NA,
-          relative_freq = NA)
+          empty_row <- data.frame(
+            name = param,
+            variable = NA,
+            n = NA,
+            relative_freq = NA
+          )
 
 
-        tab1 <- rbind(empty_row, tab1)
+          tab1 <- rbind(empty_row, tab1)
         }
         tab1
       })
@@ -117,16 +165,22 @@ helper_summarize_cat <- function(data,
       # select all the appropriate measure options
       keep_vars <-
         names_data[match(measures_cat, all_measure_options)]
-      res_tab1 <- res_tab %>%
-        relocate(name, .before = variable) %>%
-        select(all_of(c("name", "variable", keep_vars)))
+      res_tab1 <- res_tab[c(
+        "name",
+        setdiff(names(res_tab), "name")
+      )]
 
+      res_tab1 <- res_tab1[c("name", "variable", keep_vars)]
+
+      # res_tab1 <- res_tab %>%
+      #   relocate(name, .before = variable) %>%
+      #   select(all_of(c("name", "variable", keep_vars)))
     }
   } else {
     #---------------------------------------------------------------------------------
     # grouping variable: at least two groups
     #--------------------------------------------------------------------------------
-     if (!is.logical(treatment_arm) & !is.logical(group_var)) {
+    if (!is.logical(treatment_arm) & !is.logical(group_var)) {
       # merge the treatment and group variables into one variable
       data1 <- data
       data1$group <- paste(
@@ -134,7 +188,6 @@ helper_summarize_cat <- function(data,
         data[[group_var]],
         sep = " "
       )
-
     } else if (!is.logical(treatment_arm)) {
       # only grouping variable
       data1 <- data
@@ -160,7 +213,6 @@ helper_summarize_cat <- function(data,
       # categorical variables present
       #--------------------------------------------------------
     } else {
-
       tab1_list <- lapply(cat_vec, function(param) {
         # split variable by group
         split_x <- split(
@@ -171,7 +223,8 @@ helper_summarize_cat <- function(data,
         # summarize within each group
         stats <- lapply(
           split_x,
-          summarize_categorical)
+          summarize_categorical
+        )
 
         # all occurring categories
         all_levels <- unique(
@@ -189,7 +242,6 @@ helper_summarize_cat <- function(data,
 
         # add group summaries
         for (grp in names(stats)) {
-
           tmp <- stats[[grp]]
 
           idx <- match(
@@ -209,20 +261,20 @@ helper_summarize_cat <- function(data,
           nrow(out) > 1 &&
             any(is.na(out$variable)) &&
             any(
-              apply(out, 1, function(x)
+              apply(out, 1, function(x) {
                 all(is.na(x[names(x) != "name"]))
-              )
+              })
             )
         )
 
         if (remove_row) {
-
           keep <- !apply(
             out,
             1,
-            function(x)
+            function(x) {
               is.na(x["variable"]) &&
-              all(is.na(x[names(x) != "name"]))
+                all(is.na(x[names(x) != "name"]))
+            }
           )
 
           out <- out[keep, , drop = FALSE]
@@ -230,16 +282,15 @@ helper_summarize_cat <- function(data,
 
         # optional empty row
         if (new_line) {
+          empty_row <- as.data.frame(
+            as.list(rep(NA, ncol(out)))
+          )
 
-        empty_row <- as.data.frame(
-          as.list(rep(NA, ncol(out)))
-        )
+          names(empty_row) <- names(out)
 
-        names(empty_row) <- names(out)
+          empty_row$name <- param
 
-        empty_row$name <- param
-
-        out <- rbind(empty_row, out)
+          out <- rbind(empty_row, out)
         }
 
         rownames(out) <- NULL
@@ -259,9 +310,10 @@ helper_summarize_cat <- function(data,
         keep_var <-
           c(keep_var, paste0(keep_vars[i], "_", unique(data1$group)))
       }
-      res_tab1 <- res_tab %>%
-        relocate(name, .before = variable) %>%
-        select(all_of(c("name", "variable", keep_var)))
+      # res_tab1 <- res_tab %>%
+      #   relocate(name, .before = variable) %>%
+      #   select(all_of(c("name", "variable", keep_var)))
+      res_tab1 <- res_tab[c("name", "variable", keep_var)]
     }
   }
   if (measure_style) {
@@ -279,31 +331,22 @@ helper_summarize_cat <- function(data,
 
 
 
-
-#########################################################################
-# Helper function for the Tab1 functions to unify the names and style of the tab1_categorial
-# data.frame in order to merge this with the output of the numeric variables
-# (function helper_numeric_summary). This function is called within the helper_categorical_summary function
-##########################################################################
-
 #' Helper: Unify Column Names and Style of the tab1_categorical Output
 #'
 #' @description
 #' "This function is used within the `helper_summarize_cat` function.
-#' Its main purpose is to standardize column names and combine multiple summary
+#' It standardizes column names and combine multiple summary
 #' measures into a single column for cleaner output and easier processing in the
 #' `Table1_flex` function.
 #'
 #'
-#' inherited from the above function. See docu, how to write inheritances
 #' @inheritParams Table1_flex
 #' @param tab_cat_measure output data.frame of the function `helper_summarize_cat`
+#' @param cat_vec character vector containing the column names with categorical values
 #'
 #' @return A `data.frame` containing the summary measures specified in the input parameters.
 #'         If more than one summary measure is chosen, the summary measures are merged into
 #'         one column
-#'
-#'
 #' @noRd
 
 cat_unify_names <- function(data,
@@ -312,20 +355,18 @@ cat_unify_names <- function(data,
                             measures_cat,
                             tab_cat_measure,
                             cat_vec = cat_vec) {
-
-   all_measure_options <- c("absolute", "relative")
+  all_measure_options <- c("absolute", "relative")
   names_data <- c("n", "relative_freq")
   keep_vars <- names_data[match(measures_cat, all_measure_options)]
 
   #---------------------------------------------------------------------------------
-  #1. Only one group
+  # 1. Only one group
   #---------------------------------------------------------------------------------
   if (is.logical(group_var) & is.logical(treatment_arm)) {
-
     #--------------------------------
     # no categorical variables given
     #-------------------------------
-    if(length(cat_vec) == 0) {
+    if (length(cat_vec) == 0) {
       return(data.frame(
         name = character(),
         variable = character(),
@@ -346,12 +387,12 @@ cat_unify_names <- function(data,
         tab_cat_measure[[keep_vars[1]]],
         " (",
         tab_cat_measure[[keep_vars[2]]],
-        ")")
+        ")"
+      )
 
-      tab_cat_measure <- tab_cat_measure[ ,c("name", "variable", "measure"), drop = FALSE]
-
+      tab_cat_measure <- tab_cat_measure[, c("name", "variable", "measure"), drop = FALSE]
     }
-  } else{
+  } else {
     #------------------------------------------------------------------------------
     # 2. At least two groups
     #------------------------------------------------------------------------------
@@ -364,8 +405,7 @@ cat_unify_names <- function(data,
         data$group,
         sep = " "
       )
-
-    } else if (!is.logical(treatment_arm)){
+    } else if (!is.logical(treatment_arm)) {
       names(data)[names(data) == treatment_arm] <- "group"
     } else {
       names(data)[names(data) == group_var] <- "group"
@@ -374,7 +414,7 @@ cat_unify_names <- function(data,
     #-------------------------------
     # no categorial variables given: return empty data.frame
     #-----------------------------
-    if(length(cat_vec) == 0 & length(measures_cat) >= 1) {
+    if (length(cat_vec) == 0 & length(measures_cat) >= 1) {
       add_vars <- c("name", "variable")
       var <- paste0("measure_", unique(data$group))
 
@@ -405,15 +445,19 @@ cat_unify_names <- function(data,
           tab_cat_measure[[component1[i]]],
           " (",
           tab_cat_measure[[component2[i]]],
-          ")" ) }
+          ")"
+        )
+      }
 
-      tab_cat_measure <- tab_cat_measure[ ,c("name", "variable", var), drop = FALSE]
+      tab_cat_measure <- tab_cat_measure[, c("name", "variable", var), drop = FALSE]
     }
   }
   tidy_rows <- function(x) ifelse(x == "NA (NA)", NA, x)
   var <- colnames(tab_cat_measure)
   var <- var[!var %in% c("variable")]
-  tab_cat_measure <- tab_cat_measure %>%
-    mutate_at(var, tidy_rows)
+
+  # tab_cat_measure <- tab_cat_measure %>%
+  #   mutate_at(var, tidy_rows)
+  tab_cat_measure[var] <- lapply(tab_cat_measure[var], tidy_rows)
   tab_cat_measure
 }

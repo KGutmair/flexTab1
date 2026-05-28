@@ -1,4 +1,4 @@
-#' This helper function resutructure the column order of the final Table1
+#' @description This helper function restructure the column order of the final Table1
 #'
 #' @param col_names: column names of the table1
 #' @param treatment_order: in which order should the treatment variables be ordered?

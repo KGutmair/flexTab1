@@ -1,131 +1,148 @@
 #' Generate Table 1 with Customizable Summary Measures
 #'
 #' @description
-#' This function creates a highly flexible Table 1 for descriptive statistics,
-#' allowing users to customize output format, choose summary measures, and
-#' optionally display missing values, p-values (testing for difference between two groups),
-#' and standardized mean differences (SMD). It is designed to adapt to various
-#' reporting needs and ensures comprehensive data summaries in a user-friendly format.
+#' This function creates a highly flexible Table 1 for descriptive statistics.
+#' It allows users to customize the output, choose summary measures, display missing values,
+#' p-values (testing for difference between two groups),and standardized mean differences (SMD).
 #'
 #'
 #' @param data A `data.frame` containing the data for which the Table 1 should be generated
-#' @param variables A character vector specifying the names of the variables for which the Table 1 summary should be created.
-#' @param group_var A character string specifying the name of the grouping variable for stratifying the Table 1 output.
-#'        If set to `FALSE` (default), the Table 1 will not be stratified by groups.
-#' @param treatment_arm A character string specifying the variable of the superior for comparing nested groups within superior groups.
-#'        For example, in a dataset with three treatment groups ("treatment": A, B, C) and two subgroups within each
-#'        treatment ("sub_group": I, II), set `group_var` to "sub_group" and `treatment_arm` to "treatment".
-#'        If p-values or SMD options are selected, the subgroups within the treatment groups will be compared.
+#' @param variables A character vector specifying  the variable names for which the Table 1 summary should be created.
+#' @param group_var A character string specifying the grouping variable for stratification.
+#'        If set to `FALSE` (default), the Table 1 is not stratified by groups.
+#' @param treatment_arm A character string indicating the main grouping variable. Subgroups defined by group_var are nested within each level of this variable.
+#'        For example, in a dataset with three treatment arms ("treatment": A, B, C) and two subgroups within each
+#'        treatment category ("sub_group": I, II), set `group_var` to "sub_group" and `treatment_arm` to "treatment".
+#'        If p-values or SMD options are selected, the subgroups within the treatment groups are compared.
 #'        Default is `FALSE` if no treatment arms are used.
-#'
-#' @param new_line logical (TRUE/FALSE), default is `FALSE`. If `TRUE`, an empty row will be added after every variable
+#' @param new_line logical (TRUE/FALSE), default is `FALSE`. If `TRUE`, an empty row is added after every variable
 #'        in the table, which can improve clarity, especially when returning the Table 1 as a flextable object.
-#'
 #' @param measures_cat A character vector indicating how categorical variables should be summarized. Options are
 #'        `"absolute"`, `"relative"`, or both. Default is `c("absolute", "relative")` for displaying both absolute and
 #'        relative frequencies.
-#'
 #' @param measures_num A character vector defining the summary statistics for numeric variables. Options include `"median"`,
 #'        `"min"`, `"max"`, `"quantile1"` (25th percentile), `"quantile3"` (75th percentile), `"mean"`, and `"sd"`
-#'        (standard deviation). If the output is a data frame, any combination of measures can be selected. If the output is a
-#'        flextable object, the number of measures is limited to three (e.g., mean(sd), median(min-max), or
+#'        (standard deviation).  The number of measures is limited to three (e.g., mean(sd), median(min-max), or
 #'        median(quantile1-quantile3)).
-#'
-#' @param display_pvalue logical (TRUE/FALSE), default is `FALSE`. If `TRUE`, p-values will be calculated and displayed.
-#'
+#' @param display_pvalue logical (TRUE/FALSE), default is `FALSE`. If `TRUE`, p-values are displayed.
 #' @param display_smd logical (TRUE/FALSE), default is `FALSE`. If `TRUE`, standardized mean differences (SMD)
-#'        will be calculated and displayed.
-#'
+#'        is displayed.
 #' @param display_missings A logical (TRUE/FALSE), default is `FALSE`. If `TRUE`, the frequency of missing values for
-#'        each variable will be shown in the output.
-#'
-#' @param flextable_output A logical (TRUE/FALSE), default is `TRUE`. If `TRUE`, the Table 1 will be returned as a
-#'        flextable object. If `FALSE`, it will be returned as a `data.frame`.
-#'
-#' @param sort_rows A character vector specifying the order in which the variables should appear in the output table.
-#'        The default is NULL, which will sort the variables alphabetically
-#'
+#'        each variable is shown in the output.
+#' @param flextable_output A logical (TRUE/FALSE), default is `TRUE`. If `TRUE`, the Table 1 is returned as a
+#'        `flextable` object. If `FALSE`, it is returned as a `data.frame`.
+#' @param sort_rows A character vector specifying the row order in which the variables should appear in the output table.
+#'        The default is NULL, which sorts the variables alphabetically.
 #' @param add_measure_ident A logical (TRUE/FALSE), default is `TRUE`. If TRUE, the summary measures identifiers, e.g. median (min-max),
-#'       mean (sd), n (%) will be added to the Table 1.
-#' @param treatment_order character vector. If the varaible treatment_arm was specified, then
-#'                        with this argument one can set the desired order of the colums of the treatment arms in the output table.
-#'                        This character vector contains the categories of the treatment_arm variable in the desirered order.
-#'
-#' @param group_order character vector. If the varaible group_var was specified, then
-#'                        with this argument one can set the desired order of the colums of the grouping variables in the output table.
-#'                        This character vector contains the categories of the grouping variable in the desirered order.
+#'       mean (sd), n (%) is added to the Table 1.
+#' @param treatment_order character vector containing the categories of the `treatment_arm` parameter in the desired column order in the output table.
+#' @param group_order character vector containing the categories of the `group_var` parameter in the desired column order in the output table.
 #'
 #' @return A `data.frame` or `flextable` object, depending on the selected output option.
 #'         The returned Table 1 contains the summary measures specified in the input parameters,
 #'         including any chosen statistics, p-values, standardized mean differences (SMD), and missing value frequencies.
 #'
+#'@details
+#'Testing for differences in variables between groups.
+#' For numerical variables, a Wilcoxon rank-sum test is used to assess differences between the median of  two groups at a significance level of 5\%.
+#' For categorical variables, a Chi-square test is used to assess differences between groups at a significance level of 5\%. If the expected
+#' absolute count is equal or below 5, then the Fisher's exact test is used instead.
+#' Till now, only group comparisons between two groups is implemented.
+#'
 #' @export
 #' @importFrom plyr rbind.fill
-#' @importFrom checkmate assert_data_frame assert_vector assert_character assertSubset assertLogical
+#' @import checkmate
 #' @import magrittr
 #' @importFrom rlang .data
 #'
 #' @examples
-#' if (requireNamespace("dplyr", quietly = TRUE) && requireNamespace("survival", quietly = TRUE)) {
-#'   library(dplyr)
+#' if (requireNamespace("survival", quietly = TRUE)) {
 #'   # Load pbc data from the survival package
 #'   pbc <- survival::pbc
 #'
 #'   baseline_var <- c("age", "chol", "sex", "stage", "platelet")
 #'
-#'   pbc <- pbc %>%
-#'     mutate_at(c("stage", "trt", "edema", "hepato"), function(x) as.factor(x)) %>%
-#'     filter(!is.na(trt)) %>%
-#'     mutate(trt = ifelse(trt == "1", "D-penicillmain", "Placebo"))
+#'   pbc[c("stage", "trt", "edema", "hepato")] <-
+#'     lapply(pbc[c("stage", "trt", "edema", "hepato")], as.factor)
 #'
-#'   # Table 1 for one group -------------------------------------------
+#'   pbc <- pbc[!is.na(pbc$trt), ]
+#' pbc$trt <- ifelse(pbc$trt == "1",
+#' "D-penicillamine",
+#' "Placebo")
 #'
-#'   tab1_ex <- Table1_flex(
-#'     data = pbc,
-#'     variables = baseline_var
-#'   )
-#'   flextable::autofit(tab1_ex)
+#' # Table 1 for one group -------------------------------------------
 #'
-#'   # Returning a data.frame for further processing
-#'   # and other summary measures
+#' tab1_ex <- Table1_flex(
+#' data = pbc,
+#' variables = baseline_var
+#' )
+#' flextable::autofit(tab1_ex)
 #'
-#'   Table1_flex(
-#'     data = pbc,
-#'     variables = baseline_var,
-#'     measures_num = c("mean", "sd"),
-#'     measures_cat = "relative"
-#'   )
+#' # choosing other summary measures
+#' Table1_flex(
+#' data = pbc,
+#' variables = baseline_var,
+#' measures_num = c("mean", "sd"),
+#' measures_cat = "relative"
+#' )
+#'
+#' # Returning a data.frame for further processing
+#' # and other summary measures
+#' Table1_flex(
+#' data = pbc,
+#' variables = baseline_var,
+#' measures_num = c("mean", "sd"),
+#' measures_cat = c("absolute","relative"),
+#' flextable_output = FALSE
+#' )
+#'
+#' # Table 1 for two groups -----------------------------------------
+#'
+#' tab1_ex <- Table1_flex(
+#' data = pbc,
+#' variables = baseline_var,
+#' group_var = "trt",
+#' add_measure_ident = FALSE,
+#' new_line = TRUE,
+#' sort_rows = c("age", "sex", "stage", "chol", "platelet"),
+#' group_order = c("Placebo", "D-penicillamine")
+#' )
+#'
+#' flextable::autofit(tab1_ex)
+#'
+#' # with additionally p-values and standarized mean differences
+#' tab1_ex <- Table1_flex(
+#' data = pbc,
+#' variables = baseline_var,
+#' group_var = "trt",
+#' add_measure_ident = FALSE,
+#' new_line = TRUE,
+#' sort_rows = c("age", "sex", "stage", "chol", "platelet"),
+#' group_order = c("Placebo", "D-penicillamine"),
+#' display_pvalue = TRUE,
+#' display_smd = TRUE
+#' )
+#'
+#' flextable::autofit(tab1_ex)
 #'
 #'
-#'   # Table 1 for two groups -----------------------------------------
-#'   # showing additionally missing values and p-vales
+#' # Table 1 for a nested group structure ----------------------------
 #'
-#'   tab1_ex <- Table1_flex(
-#'     data = pbc,
-#'     variables = baseline_var,
-#'     group_var = "trt",
-#'     add_measure_ident = TRUE,
-#'     sort_rows = c("age", "sex", "stage", "chol", "platelet")
-#'   )
+#' baseline_var <- c("age", "chol", "platelet", "stage")
+#' tab1_ex <- Table1_flex(
+#' data = pbc,
+#' variables = baseline_var,
+#' group_var = "sex",
+#' treatment_arm = "trt",
+#' add_measure_ident = TRUE,
+#' sort_rows = c("age", "stage", "chol", "platelet"),
+#' flextable_output = TRUE,
+#' display_pvalue = TRUE
+#' )
 #'
-#'   flextable::autofit(tab1_ex)
-#'
-#'
-#'   # Table 1 for a nested group structure ----------------------------
-#'
-#'   baseline_var <- c("age", "chol", "platelet", "stage")
-#'   tab1_ex <- Table1_flex(
-#'     data = pbc,
-#'     variables = baseline_var,
-#'     group_var = "sex",
-#'     treatment_arm = "trt",
-#'     add_measure_ident = TRUE,
-#'     sort_rows = c("age", "stage", "chol", "platelet"),
-#'     flextable_output = TRUE
-#'   )
-#'
-#'   flextable::autofit(tab1_ex)
+#' flextable::autofit(tab1_ex)
 #' }
+#'
 
 
 Table1_flex <- function(data,
@@ -156,7 +173,7 @@ Table1_flex <- function(data,
   # variables
   #-------------------------------
   missing_vars <- variables[!variables %in% colnames(data)]
-  assert_character(variables,any.missing = FALSE, null.ok = TRUE)
+  assert_character(variables, any.missing = FALSE, null.ok = TRUE)
 
   if (length(missing_vars) > 0) {
     warning(
@@ -193,13 +210,11 @@ Table1_flex <- function(data,
   }
 
 
-
-
   #---------------------
   # treatment_arm
   #---------------------
   assert(isFALSE(treatment_arm) || (is.character(treatment_arm) && length(treatment_arm) == 1),
-         msg = "Input of 'treatment_arm' must be either FALSE or a single character value (column name of data)."
+    msg = "Input of 'treatment_arm' must be either FALSE or a single character value (column name of data)."
   )
 
   if (treatment_arm != FALSE) {
@@ -215,21 +230,20 @@ Table1_flex <- function(data,
         is.character(data[[treatment_arm]]),
       msg = "'treatment_arm'  must refer to a logical or factor/character variable in data."
     )
-
   }
 
-#------------------
+  #------------------
   # new_line
-#------------------
-  #assertLogical(new_line, any.missing = FALSE, len = 1)
+  #------------------
+  # assertLogical(new_line, any.missing = FALSE, len = 1)
   if (!is.logical(new_line) || length(new_line) != 1 || is.na(new_line)) {
     warning("`new_line` is invalid. Setting to FALSE.")
     new_line <- FALSE
   }
 
-#-----------------
-# measure_cat
-#--------------
+  #-----------------
+  # measure_cat
+  #--------------
   assert_character(
     measures_cat,
     any.missing = FALSE,
@@ -263,14 +277,14 @@ Table1_flex <- function(data,
   assertLogical(display_smd, any.missing = FALSE, len = 1)
 
   if ((is.logical(group_var) & is.logical(treatment_arm)) &
-      (display_pvalue == TRUE | display_smd == TRUE)) {
+    (display_pvalue == TRUE | display_smd == TRUE)) {
     warning("Calculation of p-values and SMDs need at least two groups. Only one group provided, setting display_pvalues and display_smd to FALSE")
     display_pvalue <- FALSE
     display_smd <- FALSE
   }
 
   if ((!is.logical(group_var) && (length(unique(data[, group_var])) > 2)) |
-      (!is.logical(treatment_arm) & is.logical(group_var)) && (length(unique(data[, treatment_arm])) > 2) &
+    (!is.logical(treatment_arm) & is.logical(group_var)) && (length(unique(data[, treatment_arm])) > 2) &
       (display_pvalue == TRUE | display_smd == TRUE)) {
     warning("The method for comparing more than two groups is not implemented yet.")
     display_pvalue <- FALSE
@@ -281,7 +295,7 @@ Table1_flex <- function(data,
   #---------------
   # display_missings
   #---------------
-  #assertLogical(display_missings, any.missing = FALSE, len = 1)
+  # assertLogical(display_missings, any.missing = FALSE, len = 1)
   ok <- checkmate::testLogical(display_missings, any.missing = FALSE, len = 1)
 
   if (!ok) {
@@ -292,7 +306,7 @@ Table1_flex <- function(data,
   #---------------
   # flextable_output
   #---------------
-  #assertLogical(flextable_output, any.missing = FALSE, len = 1)
+  # assertLogical(flextable_output, any.missing = FALSE, len = 1)
   ok <- testLogical(flextable_output, any.missing = FALSE, len = 1)
 
 
@@ -311,13 +325,12 @@ Table1_flex <- function(data,
   # )
 
   if (!is.null(sort_rows) &&
-      (!is.character(sort_rows) || anyNA(sort_rows))) {
+    (!is.character(sort_rows) || anyNA(sort_rows))) {
     warning("'sort_rows' is invalid. Setting to NULL.")
     sort_rows <- NULL
   }
 
   if (!is.null(sort_rows)) {
-
     missing_sort_rows <- sort_rows[!sort_rows %in% variables]
 
     if (length(missing_sort_rows) > 0) {
@@ -359,14 +372,13 @@ Table1_flex <- function(data,
     }
   }
 
-  if(!is.null(treatment_order) & is.logical(treatment_arm)) {
+  if (!is.null(treatment_order) & is.logical(treatment_arm)) {
     warning("'treatment_order' is specified, but the parameters treatment_arm is empty.
             'treatment_order' is ignored.")
-      treatment_order <- NULL
+    treatment_order <- NULL
   }
 
   if (!is.null(treatment_order) & !is.logical(treatment_arm)) {
-
     missing_treatment <- treatment_order[
       !treatment_order %in% unique(data[[treatment_arm]])
     ]
@@ -382,8 +394,6 @@ Table1_flex <- function(data,
       treatment_order <- NULL
     }
   }
-
-
 
 
   #--------------
@@ -403,14 +413,13 @@ Table1_flex <- function(data,
     }
   }
 
-  if(!is.null(group_order) & is.logical(group_var)) {
+  if (!is.null(group_order) & is.logical(group_var)) {
     warning("'group_order' is specified, but the parameters group_var is empty.
             'group_order' is ignored.")
     group_order <- NULL
   }
 
   if (!is.null(group_order) & !is.logical(group_var)) {
-
     missing_group <- group_order[
       !group_order %in% unique(data[[group_var]])
     ]
@@ -436,9 +445,6 @@ Table1_flex <- function(data,
       group_order <- NULL
     }
   }
-
-
-
 
 
   #--------------------------------------------------------------------------------
@@ -509,7 +515,7 @@ Table1_flex <- function(data,
   # Standardized mean differences
   #---------------------------------------------------------------
 
-  if (display_smd ) {
+  if (display_smd) {
     smd_data <- helper_smd(
       data = data,
       variables = variables,
