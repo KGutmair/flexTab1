@@ -1,6 +1,6 @@
 Package: flexTab1
 Title: Creation of a Table 1 and descriptive summary tables
-Version: 0.0.0.9000
+Version: 1.0.0
 Authors@R: 
     person("Katja", "Gutmair", , "katja.gutmair@ibe.med.uni-muenchen.de", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0002-3948-6186"))
