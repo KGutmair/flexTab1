@@ -4,8 +4,7 @@ Version: 0.0.0.9000
 Authors@R: 
     person("Katja", "Gutmair", , "katja.gutmair@ibe.med.uni-muenchen.de", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0002-3948-6186"))
-Description: This function creates a highly flexible summary measure table for descriptive statistics ("Table 1") 
-             with options to customize both the statistical options and the output layout.
+Description: This function creates a highly flexible summary measure table for descriptive statistics ("Table 1") with options to customize both the statistical options and the output layout.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
