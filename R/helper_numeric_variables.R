@@ -9,7 +9,7 @@
 #' @inheritParams Table1_flex
 #' @param num_vec  A character vector specifying the variable names for which
 #'                the summary measures should be created.
-#' @param measure_style A logical value (TRUE/FALSE), default is `FALSE`. If `TRUE`, the helper function `cat_unify_names`
+#' @param measure_style A logical value (TRUE/FALSE), default is `FALSE`. If `TRUE`, the helper function `num_unify_names`
 #'        will be called to combine the selected summary measures into a single column.
 #' @return A `data.frame` containing the summary measures specified in the input parameters.
 #' @importFrom stats sd quantile median

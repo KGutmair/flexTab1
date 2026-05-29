@@ -50,7 +50,6 @@
 #' Till now, only group comparisons between two groups is implemented.
 #'
 #' @export
-#' @importFrom plyr rbind.fill
 #' @import checkmate
 #' @import magrittr
 #' @importFrom rlang .data
@@ -543,7 +542,14 @@ Table1_flex <- function(data,
       measure_style = TRUE
     )
 
-    tab1 <- rbind.fill(tab1, miss_val)
+   # tab1 <- rbind.fill(tab1, miss_val)
+    # rbind and fill with NA
+    all_cols <- union(names(tab1), names(miss_val))
+
+    tab1[setdiff(all_cols, names(tab1))] <- NA
+    miss_val[setdiff(all_cols, names(miss_val))] <- NA
+
+    tab1 <- rbind(tab1[all_cols], miss_val[all_cols])
   }
 
   #---------------------------------------------------------------

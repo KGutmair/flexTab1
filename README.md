@@ -5,6 +5,10 @@
 
 <!-- badges: start -->
 
+An R package for creating flexible, publication-ready summary tables
+(Table 1) for descriptive statistics. Customize both statistical
+measures and table layout to meet your exact reporting needs.
+
 [![R-CMD-check](https://github.com/KGutmair/flexTab1/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/KGutmair/flexTab1/actions/workflows/R-CMD-check.yaml)
 [![Codecov test
 coverage](https://codecov.io/gh/KGutmair/flexTab1/graph/badge.svg)](https://app.codecov.io/gh/KGutmair/flexTab1)
@@ -12,9 +16,9 @@ coverage](https://codecov.io/gh/KGutmair/flexTab1/graph/badge.svg)](https://app.
 
 ## Overview
 
-This function creates a highly flexible summary measure table for
-descriptive statistics (“Table 1”) with options to customize both the
-statistical options and the output layout. It supports:
+flexTab1 creates highly flexible Table 1 summary tables for descriptive
+statistics. It allows you to customize both the statistical measures and
+the output layout. It supports:
 
 - **Statistical Flexibility**: Various summary measures can be selected
   for categorical (*absolute*, *relative*) and numerical variables
@@ -24,18 +28,18 @@ statistical options and the output layout. It supports:
   include displaying *p-values* and *standardized mean differences*
   (SMD).
 
-- **Custom Layout**:The following layout options are available: *row
+- **Custom Layout**: The following layout options are available: *row
   sorting* and *column sorting*, the option to display *summary measure
   units* (e.g., n (%), median (SD)), and an empty line after each
   variable for improved readability. The output can be generated as
   either a *publication-ready* output table (created with the
-  `flextable` package) or as a `"data.frame"`, allowing for further
+  `flextable` package) or as a `data.frame`, allowing for further
   modifications or integration with other table formatting packages.
 
-- **Group Analysis**: Supports summary measured for a *single group* and
-  stratified by *two or more groups*.Additionally, a nested group
-  structure is supported, allowing for the comparison of subgroups
-  within main groups.
+- **Group Analysis**: Supports summary measures for a *single group* and
+  stratified by *two or more groups*. Additionally, `flexTab1` supports
+  a nested group structure, allowing you to compare subgroups within
+  main groups.
 
 ## Installation
 
@@ -129,8 +133,8 @@ tab1_example %>%
 
 ### Table 1 for nested groups
 
-The Table1_flex also supports a nested group structure, meaning having
-subgroups within main groups
+`flexTab1` supports a nested group structure, allowing you to compare
+subgroups within main groups.
 
 ``` r
 

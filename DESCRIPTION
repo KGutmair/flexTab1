@@ -4,14 +4,8 @@ Version: 0.0.0.9000
 Authors@R: 
     person("Katja", "Gutmair", , "katja.gutmair@ibe.med.uni-muenchen.de", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0002-3948-6186"))
-Description: This package provides functions for quickly generating summary statistics for both 
-             categorical and numeric variables, either for a single group or stratified across 
-             multiple groups, in a nice output format ("Table 1"). The key advantage of this package is its 
-             flexibility: users can choose from a wide range of summary measures (e.g., median, 
-             mean, standard deviation, and more). Additionally, options are available 
-             to visualize the frequency of missing values per variable, p-values and/or standardized 
-             mean differences. Users can also decide whether to output a publication-ready table 
-             using the flextable package or a simple data frame for further customization of the layout.
+Description: This function creates a highly flexible summary measure table for descriptive statistics ("Table 1") 
+             with options to customize both the statistical options and the output layout.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -20,7 +14,6 @@ URL: https://github.com/KGutmair/flexTab1
 BugReports: https://github.com/KGutmair/flexTab1/issues
 Imports: 
     checkmate (>= 2.3.1),
-    plyr (>= 1.1.4),
     flextable (>= 0.9.6),
     magrittr (>= 2.0.3),
     smd (>= 0.7.0),
