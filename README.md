@@ -48,7 +48,7 @@ You can install the development version of flexTab1 from
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("KGutmair/flexTab1")
+devtools::install_github("KGutmair/flexTab1", build_vignettes = TRUE)
 ```
 
 ## Usage
