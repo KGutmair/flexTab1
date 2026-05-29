@@ -40,6 +40,8 @@ You can install the development version of flexTab1 from [GitHub](https://github
 ``` r
 # install.packages("devtools")
 devtools::install_github("KGutmair/flexTab1", build_vignettes = TRUE)
+# Accessing the vignette
+# vignette("Introduction", package = "flexTab1")
 ```
 
 ## Usage
