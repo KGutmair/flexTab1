@@ -50,7 +50,7 @@ You can install the development version of flexTab1 from
 # install.packages("devtools")
 devtools::install_github("KGutmair/flexTab1", build_vignettes = TRUE)
 # Accessing the vignette
-# vignette("Introduction", package = "flexTab1")
+# vignette("Get_started", package = "flexTab1")
 ```
 
 ## Usage

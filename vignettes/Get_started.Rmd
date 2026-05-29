@@ -1,9 +1,8 @@
 ---
-title: "Introduction"
+title: "Get_started"
 output: rmarkdown::html_vignette
-bibliography: references.bib
 vignette: >
-  %\VignetteIndexEntry{Introduction}
+  %\VignetteIndexEntry{Get_started}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
