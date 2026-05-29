@@ -361,4 +361,5 @@ tab1_ex2 <- out2 %>%
 flextable::autofit(tab1_ex2)
 ```
 
+
 # References

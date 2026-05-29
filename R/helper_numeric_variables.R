@@ -268,6 +268,8 @@ helper_summarize_num <- function(data,
         num_vec = num_vec
       )
     }
+  } else {
+    res_tab1 <- res_tab1$variable <- NULL
   }
   res_tab1
 }
