@@ -37,7 +37,7 @@ in the table, which can improve clarity, especially when returning the Table 1 a
 (standard deviation).  The number of measures is limited to three (e.g., mean(sd), median(min-max), or
 median(quantile1-quantile3)).}
 
-\item{measure_style}{A logical value (TRUE/FALSE), default is \code{FALSE}. If \code{TRUE}, the helper function \code{cat_unify_names}
+\item{measure_style}{A logical value (TRUE/FALSE), default is \code{FALSE}. If \code{TRUE}, the helper function \code{num_unify_names}
 will be called to combine the selected summary measures into a single column.}
 }
 \value{

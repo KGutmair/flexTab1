@@ -23,5 +23,6 @@ Suggests:
     knitr,
     rmarkdown,
     survival,
-    officer
+    officer, 
+    dplyr
 VignetteBuilder: knitr

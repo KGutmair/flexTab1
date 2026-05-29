@@ -54,6 +54,7 @@ Here, the Mayo Clinic Primary Biliary Cholangitis Data from the survival package
 We start with loading the required packages and the dataset in our repository. Furthermore, we get familiar with the variables in the data and doing some minor data cleaning necessary for the Table 1.
 ```{r, message=FALSE}
 library("survival")
+library(dplyr)
 
 # Load pbc data from the survival package
 pbc <- survival::pbc
@@ -177,6 +178,15 @@ tab1_ex8 <- Table1_flex(
 flextable::autofit(tab1_ex8)
 ```
 
+```{r, message=FALSE}
+tab1_ex8 <- Table1_flex(
+  data = pbc,
+  variables = baseline_var,
+  group_var = "trt",
+  display_missings = TRUE
+)
+flextable::autofit(tab1_ex8)
+```
 
 ### Display p-values
 Default is `display_pvalue` = FALSE. For numerical variables, differences in the distribution between two groups is done with a Wilcoxon test with an alpha level of 5\%. Differences in categorial variables are compared with a $\chi^2$ test or with a fisher exact test, if the number of expected counts in one cell of the contingency table exceeds 5.
